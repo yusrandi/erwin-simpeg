@@ -1,8 +1,9 @@
-import { NavLink } from "react-router-dom"
-import { LayoutDashboard, Users, UserPlus, BarChart3, Settings, Building2, Sun, Moon } from "lucide-react"
+import { NavLink, useNavigate } from "react-router-dom"
+import { LayoutDashboard, Users, UserPlus, BarChart3, Settings, Building2, Sun, Moon, LogOut } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Separator } from "@/components/ui/separator"
 import { useState, useEffect } from "react"
+import { getSession, logout } from "@/lib/auth"
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
@@ -12,6 +13,8 @@ const navItems = [
 ]
 
 export function Sidebar() {
+    const navigate = useNavigate()
+  const session = getSession()
   const [theme, setTheme] = useState<"light" | "dark">(
     () => (localStorage.getItem("theme") as "light" | "dark") || "light"
   )
@@ -22,6 +25,11 @@ export function Sidebar() {
   }, [theme])
 
   const toggle = () => setTheme(t => t === "light" ? "dark" : "light")
+
+  function handleLogout() {
+    logout()
+    navigate("/login", { replace: true })
+  }
 
   return (
     <aside className="w-64 min-h-screen bg-background border-r border-border flex flex-col fixed left-0 top-0 z-40">
@@ -90,6 +98,21 @@ export function Sidebar() {
         >
           {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           {theme === "dark" ? "Light Mode" : "Dark Mode"}
+        </button>
+
+        <Separator className="my-2" />
+
+        {/* User info + logout */}
+        <div className="px-3 py-2">
+          <p className="text-xs text-muted-foreground">Login sebagai</p>
+          <p className="text-sm font-semibold text-foreground capitalize">{session?.username ?? "admin"}</p>
+        </div>
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-destructive hover:bg-destructive/10 transition-all"
+        >
+          <LogOut className="w-4 h-4" />
+          Keluar
         </button>
 
         <p className="text-xs text-muted-foreground mt-2 px-3">v1.0.0 · 2026</p>
