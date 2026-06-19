@@ -1,23 +1,52 @@
 import { NavLink, useNavigate } from "react-router-dom"
-import { LayoutDashboard, Users, UserPlus, BarChart3, Settings, Building2, Sun, Moon, LogOut } from "lucide-react"
+import {
+  LayoutDashboard, Users, UserPlus, BarChart3,
+  Database, BookOpen, BookMarked, Wallet,
+  TrendingDown, Scale, ArrowLeftRight,
+  Building2, Sun, Moon, LogOut, ChevronDown
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Separator } from "@/components/ui/separator"
+import { logout, getSession } from "@/lib/auth"
 import { useState, useEffect } from "react"
-import { getSession, logout } from "@/lib/auth"
 
-const navItems = [
-  { to: "/", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/pegawai", icon: Users, label: "Data Pegawai" },
-  { to: "/tambah", icon: UserPlus, label: "Tambah Pegawai" },
-  { to: "/statistik", icon: BarChart3, label: "Statistik" },
+const navGroups = [
+  {
+    label: "Kepegawaian",
+    items: [
+      { to: "/", icon: LayoutDashboard, label: "Dashboard" },
+      { to: "/pegawai", icon: Users, label: "Data Pegawai" },
+      { to: "/tambah", icon: UserPlus, label: "Tambah Pegawai" },
+      { to: "/statistik", icon: BarChart3, label: "Statistik" },
+    ],
+  },
+  {
+    label: "Akuntansi",
+    items: [
+      { to: "/master-akun", icon: Database, label: "Master Akun" },
+      { to: "/jurnal", icon: BookOpen, label: "Jurnal Umum" },
+      { to: "/buku-besar", icon: BookMarked, label: "Buku Besar" },
+      { to: "/arus-kas", icon: Wallet, label: "Arus Kas" },
+      { to: "/laba-rugi", icon: TrendingDown, label: "Laba Rugi" },
+      { to: "/perubahan-modal", icon: ArrowLeftRight, label: "Perubahan Modal" },
+      { to: "/neraca", icon: Scale, label: "Neraca" },
+    ],
+  },
 ]
 
 export function Sidebar() {
-    const navigate = useNavigate()
+  const navigate = useNavigate()
   const session = getSession()
+
   const [theme, setTheme] = useState<"light" | "dark">(
     () => (localStorage.getItem("theme") as "light" | "dark") || "light"
   )
+
+  // Collapsed state per group — Akuntansi default collapsed
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({
+    Kepegawaian: false,
+    Akuntansi: false,
+  })
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark")
@@ -25,6 +54,10 @@ export function Sidebar() {
   }, [theme])
 
   const toggle = () => setTheme(t => t === "light" ? "dark" : "light")
+
+  function toggleGroup(label: string) {
+    setCollapsed(prev => ({ ...prev, [label]: !prev[label] }))
+  }
 
   function handleLogout() {
     logout()
@@ -41,40 +74,63 @@ export function Sidebar() {
           </div>
           <div>
             <p className="font-bold text-sm leading-tight text-foreground">SIMPEG</p>
-            <p className="text-xs text-muted-foreground leading-tight">Sistem Informasi Pegawai</p>
+            <p className="text-xs text-muted-foreground leading-tight">Sistem Informasi Pesantren</p>
           </div>
         </div>
       </div>
 
       <Separator />
 
-      {/* Nav */}
-      <nav className="flex-1 p-4 space-y-1">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-3 pb-2">
-          Menu Utama
-        </p>
-        {navItems.map(({ to, icon: Icon, label }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={to === "/"}
-            className={({ isActive }) =>
-              cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-150",
-                isActive
-                  ? "bg-foreground text-background"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              )
-            }
-          >
-            <Icon className="w-4 h-4 shrink-0" />
-            {label}
-          </NavLink>
+      {/* Nav groups */}
+      <nav className="flex-1 p-4 space-y-4 overflow-y-auto">
+        {navGroups.map(group => (
+          <div key={group.label}>
+            {/* Group header — bisa diklik untuk collapse */}
+            <button
+              onClick={() => toggleGroup(group.label)}
+              className="w-full flex items-center justify-between px-3 pb-1.5 group"
+            >
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider group-hover:text-foreground transition-colors">
+                {group.label}
+              </span>
+              <ChevronDown
+                className={cn(
+                  "w-3.5 h-3.5 text-muted-foreground transition-transform duration-200",
+                  collapsed[group.label] && "-rotate-90"
+                )}
+              />
+            </button>
+
+            {/* Items */}
+            {!collapsed[group.label] && (
+              <div className="space-y-0.5">
+                {group.items.map(({ to, icon: Icon, label }) => (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    end={to === "/"}
+                    className={({ isActive }) =>
+                      cn(
+                        "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-150",
+                        isActive
+                          ? "bg-foreground text-background"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      )
+                    }
+                  >
+                    <Icon className="w-4 h-4 shrink-0" />
+                    {label}
+                  </NavLink>
+                ))}
+              </div>
+            )}
+          </div>
         ))}
       </nav>
 
       <Separator />
 
+      {/* Bottom section */}
       <div className="p-4 space-y-1">
         <NavLink
           to="/pengaturan"
@@ -87,7 +143,7 @@ export function Sidebar() {
             )
           }
         >
-          <Settings className="w-4 h-4" />
+          <LayoutDashboard className="w-4 h-4" />
           Pengaturan
         </NavLink>
 

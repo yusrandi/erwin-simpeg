@@ -8,6 +8,13 @@ import TambahPegawai from "@/pages/TambahPegawai"
 import Statistik from "@/pages/Statistik"
 import Pengaturan from "@/pages/Pengaturan"
 import { isAuthenticated } from "@/lib/auth"
+import JurnalUmum from "./pages/JurnalUmum"
+import BukuBesar from "./pages/BukuBesar"
+import ArusKas from "./pages/ArusKas"
+import LabaRugi from "./pages/LabaRugi"
+import MasterAkun from "./pages/MasterAkun"
+import Neraca from "./pages/Neraca"
+import PerubahanModal from "./pages/PerubahanModal"
 
 export default function App() {
   return (
@@ -27,6 +34,13 @@ export default function App() {
             <Route path="/tambah" element={<TambahPegawai />} />
             <Route path="/statistik" element={<Statistik />} />
             <Route path="/pengaturan" element={<Pengaturan />} />
+            <Route path="/master-akun" element={<MasterAkun />} />
+            <Route path="/jurnal" element={<JurnalUmum />} />
+            <Route path="/buku-besar" element={<BukuBesar />} />
+            <Route path="/arus-kas" element={<ArusKas />} />
+            <Route path="/laba-rugi" element={<LabaRugi />} />
+            <Route path="/neraca" element={<Neraca />} />
+            <Route path="/perubahan-modal" element={<PerubahanModal />} />
           </Route>
         </Route>
 
