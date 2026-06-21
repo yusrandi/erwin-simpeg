@@ -29,6 +29,8 @@ import Pending from "./pages/Pending"
 import Onboarding from "./pages/Onboarding"
 import PlatformUsers from "./pages/platform/Users"
 import UnitKerja from "./pages/UnitKerja"
+import SettingPembayaran from "./pages/SettingPembayaran"
+import Landing from "./pages/Landing"
 
 export default function App() {
   const { user, profile, loading } = useAuth()
@@ -42,12 +44,15 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+
         {/* Public */}
+        <Route path="/" element={<Landing />} />
+
         <Route path="/login"
           element={!user ? <Login /> : (
             profile?.role === "SUPERADMIN_PLATFORM"
               ? <Navigate to="/platform" replace />
-              : <Navigate to="/" replace />
+              : <Navigate to="/dashboard" replace />
           )}
         />
         <Route path="/register"    element={<Register />} />
@@ -71,7 +76,7 @@ export default function App() {
         {/* Superadmin Pesantren + Admin Unit */}
         <Route element={<ProtectedRoute allowedRoles={["SUPERADMIN_PESANTREN", "ADMIN_UNIT"]} />}>
           <Route element={<Layout />}>
-            <Route path="/"                element={<Dashboard />} />
+            <Route path="/dashboard"         element={<Dashboard />} />
             <Route path="/unit-kerja" element={<UnitKerja />} />
             <Route path="/pegawai"         element={<DataPegawai />} />
             <Route path="/tambah"          element={<TambahPegawai />} />
@@ -84,6 +89,7 @@ export default function App() {
             <Route path="/perubahan-modal" element={<PerubahanModal />} />
             <Route path="/neraca"          element={<Neraca />} />
             <Route path="/pengaturan"      element={<Pengaturan />} />
+            <Route path="/setting-pembayaran" element={<SettingPembayaran />} />
           </Route>
         </Route>
 

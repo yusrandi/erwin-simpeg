@@ -42,7 +42,7 @@ export default function Login() {
     if (!profile) { setError("Akun belum dikonfigurasi. Hubungi administrator."); return }
 
     if (profile.role === "SUPERADMIN_PLATFORM") navigate("/platform", { replace: true })
-    else navigate("/", { replace: true })
+    else navigate("/dashboard", { replace: true })
   }
 
   return (

@@ -157,7 +157,7 @@ export default function Onboarding() {
             </div>
           ))}
         </div>
-        <Button className="w-full" onClick={() => navigate("/", { replace: true })}>
+        <Button className="w-full" onClick={() => navigate("/dashboard", { replace: true })}>
           Masuk ke Dashboard <ArrowRight className="w-4 h-4 ml-2" />
         </Button>
       </div>

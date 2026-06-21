@@ -3,7 +3,8 @@ import {
   LayoutDashboard, Users, UserPlus, BarChart3, Database,
   BookOpen, BookMarked, Wallet, TrendingDown, Scale,
   ArrowLeftRight, Building2, Building, Sun, Moon,
-  LogOut, ChevronDown
+  LogOut, ChevronDown,
+  CreditCard
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Separator } from "@/components/ui/separator"
@@ -38,7 +39,7 @@ export function Sidebar() {
     {
       label: "Kepegawaian",
       items: [
-        { to: "/", icon: LayoutDashboard, label: "Dashboard" },
+        { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
         ...(isSuperadminPesantren
           ? [{ to: "/unit-kerja", icon: Building, label: "Unit Kerja" }]
           : []),
@@ -46,6 +47,12 @@ export function Sidebar() {
         { to: "/tambah", icon: UserPlus, label: "Tambah Pegawai" },
         { to: "/statistik", icon: BarChart3, label: "Statistik" },
       ],
+    },
+    {
+        label: "Pembayaran",          // ← group baru
+        items: [
+        { to: "/setting-pembayaran", icon: CreditCard, label: "Setting Pembayaran" },
+        ],
     },
     {
       label: "Akuntansi",
