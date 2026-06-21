@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useToast } from "@/hooks/use-toast"
+import { UnitSelector } from "@/components/UnitSelector"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,13 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Trash2, Eye, Pencil, RefreshCw } from "lucide-react"
 import type { JurnalUmum, JurnalFormData, JurnalDetail, MasterAkun } from "@/types/keuangan"
 
-// ─── helpers ────────────────────────────────────────────
 const emptyDetail = (): JurnalDetail => ({ akun_kode: "", debit: 0, kredit: 0 })
 
 const emptyForm = (): JurnalFormData => ({
   tanggal: new Date().toISOString().slice(0, 10),
-  no_jurnal: "",
-  keterangan: "",
+  no_jurnal: "", keterangan: "",
   detail: [emptyDetail(), emptyDetail()],
 })
 
@@ -30,9 +29,20 @@ function formatTgl(tgl: string) {
 }
 
 export default function JurnalUmumPage() {
+  return (
+    <UnitSelector>
+      {(unitKerjaId, pesantrenId) => (
+        <JurnalUmumContent unitKerjaId={unitKerjaId} pesantrenId={pesantrenId} />
+      )}
+    </UnitSelector>
+  )
+}
+
+function JurnalUmumContent({ unitKerjaId, pesantrenId }: { unitKerjaId: string; pesantrenId: string }) {
   const { toast } = useToast()
   const [data, setData] = useState<JurnalUmum[]>([])
   const [masterAkun, setMasterAkun] = useState<MasterAkun[]>([])
+  const [akunMap, setAkunMap] = useState<Map<string, string>>(new Map()) // kode → nama
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState<JurnalFormData>(emptyForm())
@@ -41,41 +51,90 @@ export default function JurnalUmumPage() {
   const [editId, setEditId] = useState<number | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<JurnalUmum | null>(null)
 
-  // ─── fetch ──────────────────────────────────────────────
   async function fetchMasterAkun() {
-    const { data: rows } = await supabase
+    const { data: rows, error } = await supabase
       .from("master_akun")
       .select("*")
+      .eq("unit_kerja_id", unitKerjaId)
       .order("kode")
-    setMasterAkun(rows ?? [])
+
+    if (error) {
+      toast({ title: "Gagal memuat master akun", description: error.message, variant: "destructive" })
+      return
+    }
+
+    const rows_ = rows ?? []
+    setMasterAkun(rows_)
+
+    // Build lookup map kode → nama
+    const map = new Map<string, string>()
+    rows_.forEach(a => map.set(a.kode, a.nama))
+    setAkunMap(map)
   }
 
   async function fetchData() {
     setLoading(true)
-    const { data: rows, error } = await supabase
+
+    // Fetch jurnal tanpa join ke master_akun
+    const { data: jurnalRows, error: jurnalError } = await supabase
       .from("jurnal_umum")
-      .select(`
-        *,
-        jurnal_detail (
-          id, akun_kode, debit, kredit,
-          master_akun ( nama, kelompok )
-        )
-      `)
+      .select("*")
+      .eq("unit_kerja_id", unitKerjaId)
       .order("tanggal", { ascending: false })
-    if (error) toast({ title: "Gagal memuat data", variant: "destructive" })
-    setData(rows ?? [])
+
+    if (jurnalError) {
+      toast({ title: "Gagal memuat jurnal", description: jurnalError.message, variant: "destructive" })
+      setLoading(false)
+      return
+    }
+
+    if (!jurnalRows?.length) {
+      setData([])
+      setLoading(false)
+      return
+    }
+
+    // Fetch semua detail untuk jurnal ini
+    const jurnalIds = jurnalRows.map(j => j.id)
+    const { data: detailRows, error: detailError } = await supabase
+      .from("jurnal_detail")
+      .select("id, jurnal_id, akun_kode, debit, kredit")
+      .in("jurnal_id", jurnalIds)
+
+    if (detailError) {
+      toast({ title: "Gagal memuat detail jurnal", description: detailError.message, variant: "destructive" })
+      setLoading(false)
+      return
+    }
+
+    // Group detail by jurnal_id
+    const detailByJurnal = new Map<number, JurnalDetail[]>()
+    ;(detailRows ?? []).forEach(d => {
+      const list = detailByJurnal.get(d.jurnal_id) ?? []
+      list.push(d)
+      detailByJurnal.set(d.jurnal_id, list)
+    })
+
+    // Gabungkan
+    const combined: JurnalUmum[] = jurnalRows.map(j => ({
+      ...j,
+      jurnal_detail: detailByJurnal.get(j.id) ?? [],
+    }))
+
+    setData(combined)
     setLoading(false)
   }
 
-  useEffect(() => { fetchMasterAkun(); fetchData() }, [])
+  useEffect(() => {
+    fetchMasterAkun()
+    fetchData()
+  }, [unitKerjaId])
 
-  // ─── computed ───────────────────────────────────────────
   const totalDebit = form.detail.reduce((s, d) => s + (Number(d.debit) || 0), 0)
   const totalKredit = form.detail.reduce((s, d) => s + (Number(d.kredit) || 0), 0)
   const isBalanced = totalDebit === totalKredit && totalDebit > 0
   const selisih = Math.abs(totalDebit - totalKredit)
 
-  // ─── form handlers ──────────────────────────────────────
   function setDetail(idx: number, key: keyof JurnalDetail, value: string | number) {
     setForm(prev => {
       const detail = [...prev.detail]
@@ -84,16 +143,12 @@ export default function JurnalUmumPage() {
     })
   }
 
-  function addRow() {
-    setForm(prev => ({ ...prev, detail: [...prev.detail, emptyDetail()] }))
+  function closeForm() {
+    setOpenForm(false)
+    setEditId(null)
+    setForm(emptyForm())
   }
 
-  function removeRow(idx: number) {
-    if (form.detail.length <= 2) return
-    setForm(prev => ({ ...prev, detail: prev.detail.filter((_, i) => i !== idx) }))
-  }
-
-  // ─── submit ─────────────────────────────────────────────
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!isBalanced) {
@@ -109,26 +164,49 @@ export default function JurnalUmumPage() {
     setSaving(true)
     try {
       if (editId) {
-        await supabase.from("jurnal_umum").update({
-          tanggal: form.tanggal,
-          no_jurnal: form.no_jurnal,
-          keterangan: form.keterangan,
-        }).eq("id", editId)
+        const { error: updateError } = await supabase
+          .from("jurnal_umum")
+          .update({ tanggal: form.tanggal, no_jurnal: form.no_jurnal, keterangan: form.keterangan })
+          .eq("id", editId)
+        if (updateError) throw updateError
+
         await supabase.from("jurnal_detail").delete().eq("jurnal_id", editId)
-        await supabase.from("jurnal_detail").insert(
-          validDetail.map(d => ({ akun_kode: d.akun_kode, debit: d.debit, kredit: d.kredit, jurnal_id: editId }))
-        )
+
+        const { error: insertDetailError } = await supabase
+          .from("jurnal_detail")
+          .insert(validDetail.map(d => ({
+            akun_kode: d.akun_kode,
+            debit: d.debit,
+            kredit: d.kredit,
+            jurnal_id: editId,
+          })))
+        if (insertDetailError) throw insertDetailError
+
         toast({ title: "Jurnal diperbarui" })
       } else {
-        const { data: inserted, error } = await supabase
+        const { data: inserted, error: insertError } = await supabase
           .from("jurnal_umum")
-          .insert({ tanggal: form.tanggal, no_jurnal: form.no_jurnal, keterangan: form.keterangan })
+          .insert({
+            tanggal: form.tanggal,
+            no_jurnal: form.no_jurnal,
+            keterangan: form.keterangan,
+            pesantren_id: pesantrenId,
+            unit_kerja_id: unitKerjaId,
+          })
           .select()
           .single()
-        if (error) throw error
-        await supabase.from("jurnal_detail").insert(
-          validDetail.map(d => ({ akun_kode: d.akun_kode, debit: d.debit, kredit: d.kredit, jurnal_id: inserted.id }))
-        )
+        if (insertError) throw insertError
+
+        const { error: insertDetailError } = await supabase
+          .from("jurnal_detail")
+          .insert(validDetail.map(d => ({
+            akun_kode: d.akun_kode,
+            debit: d.debit,
+            kredit: d.kredit,
+            jurnal_id: inserted.id,
+          })))
+        if (insertDetailError) throw insertDetailError
+
         toast({ title: "Jurnal berhasil disimpan" })
       }
       closeForm()
@@ -157,45 +235,48 @@ export default function JurnalUmumPage() {
       no_jurnal: j.no_jurnal,
       keterangan: j.keterangan,
       detail: j.jurnal_detail?.length
-        ? j.jurnal_detail.map(d => ({ akun_kode: d.akun_kode, debit: Number(d.debit), kredit: Number(d.kredit) }))
+        ? j.jurnal_detail.map(d => ({
+            akun_kode: d.akun_kode,
+            debit: Number(d.debit),
+            kredit: Number(d.kredit),
+          }))
         : [emptyDetail(), emptyDetail()],
     })
     setOpenForm(true)
   }
 
-  function closeForm() {
-    setOpenForm(false)
-    setEditId(null)
-    setForm(emptyForm())
-  }
+  // Grouped untuk dropdown
+  const grouped = ["ASET","KEWAJIBAN","MODAL","PENDAPATAN","BEBAN"]
+    .map(k => ({ kelompok: k, akuns: masterAkun.filter(a => a.kelompok === k) }))
+    .filter(g => g.akuns.length > 0)
 
-  // ─── render ─────────────────────────────────────────────
   return (
     <div className="space-y-5">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Jurnal Umum</h1>
           <p className="text-sm text-muted-foreground mt-1">Kelola seluruh transaksi keuangan</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={fetchData} disabled={loading}>
+          <Button variant="outline" size="sm" onClick={() => { fetchMasterAkun(); fetchData() }} disabled={loading}>
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} /> Refresh
           </Button>
-          <Button size="sm" onClick={() => { closeForm(); setOpenForm(true) }} disabled={masterAkun.length === 0}>
+          <Button
+            size="sm"
+            onClick={() => { closeForm(); setOpenForm(true) }}
+            disabled={masterAkun.length === 0 || loading}
+          >
             <Plus className="w-4 h-4 mr-2" /> Tambah Jurnal
           </Button>
         </div>
       </div>
 
-      {/* Warning kalau master akun kosong */}
-      {masterAkun.length === 0 && !loading && (
-        <div className="flex items-center gap-3 p-4 rounded-lg border border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20 text-sm text-yellow-800 dark:text-yellow-300">
-          ⚠ Belum ada Master Akun. Silakan buat akun di halaman <strong>Master Akun</strong> terlebih dahulu.
+      {!loading && masterAkun.length === 0 && (
+        <div className="p-4 rounded-lg border border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20 text-sm text-yellow-800 dark:text-yellow-300">
+          ⚠ Belum ada Master Akun. Buat akun di halaman <strong>Master Akun</strong> terlebih dahulu.
         </div>
       )}
 
-      {/* Tabel */}
       <Card>
         <CardContent className="p-0">
           <Table>
@@ -228,13 +309,16 @@ export default function JurnalUmumPage() {
               ) : data.map(j => {
                 const totalD = j.jurnal_detail?.reduce((s, d) => s + Number(d.debit), 0) ?? 0
                 const totalK = j.jurnal_detail?.reduce((s, d) => s + Number(d.kredit), 0) ?? 0
-                const akunList = j.jurnal_detail?.map(d => d.master_akun?.nama ?? d.akun_kode).join(", ") ?? ""
+                // Gunakan akunMap untuk lookup nama
+                const akunList = j.jurnal_detail
+                  ?.map(d => akunMap.get(d.akun_kode) ?? d.akun_kode)
+                  .join(", ") ?? ""
                 return (
                   <TableRow key={j.id}>
                     <TableCell className="text-sm">{formatTgl(j.tanggal)}</TableCell>
                     <TableCell className="font-mono text-sm">{j.no_jurnal}</TableCell>
                     <TableCell className="text-sm">{j.keterangan}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground max-w-[180px] truncate">{akunList}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground max-w-[160px] truncate">{akunList}</TableCell>
                     <TableCell className="text-right text-sm font-medium">{formatRp(totalD)}</TableCell>
                     <TableCell className="text-right text-sm font-medium">{formatRp(totalK)}</TableCell>
                     <TableCell className="text-right">
@@ -258,14 +342,13 @@ export default function JurnalUmumPage() {
         </CardContent>
       </Card>
 
-      {/* ── Form Dialog ── */}
+      {/* Form Dialog */}
       <Dialog open={openForm} onOpenChange={open => { if (!open) closeForm() }}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>{editId ? "Edit Jurnal" : "Tambah Jurnal Baru"}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Header jurnal */}
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label>Tanggal *</Label>
@@ -274,17 +357,19 @@ export default function JurnalUmumPage() {
               </div>
               <div className="space-y-2">
                 <Label>No. Jurnal *</Label>
-                <Input value={form.no_jurnal} placeholder="JU-001"
-                  onChange={e => setForm(p => ({ ...p, no_jurnal: e.target.value }))} required />
+                <Input value={form.no_jurnal}
+                  onChange={e => setForm(p => ({ ...p, no_jurnal: e.target.value }))}
+                  placeholder="JU-001" required />
               </div>
               <div className="space-y-2">
                 <Label>Keterangan *</Label>
-                <Input value={form.keterangan} placeholder="Pembelian ATK"
-                  onChange={e => setForm(p => ({ ...p, keterangan: e.target.value }))} required />
+                <Input value={form.keterangan}
+                  onChange={e => setForm(p => ({ ...p, keterangan: e.target.value }))}
+                  placeholder="Pembelian ATK" required />
               </div>
             </div>
 
-            {/* Detail baris */}
+            {/* Detail rows */}
             <div className="space-y-2">
               <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground px-1">
                 <span className="col-span-5">Akun</span>
@@ -294,53 +379,66 @@ export default function JurnalUmumPage() {
 
               {form.detail.map((d, i) => (
                 <div key={i} className="grid grid-cols-12 gap-2 items-center">
-                  {/* Dropdown akun dari master */}
                   <div className="col-span-5">
                     <Select value={d.akun_kode} onValueChange={v => setDetail(i, "akun_kode", v)}>
                       <SelectTrigger className="h-8 text-sm">
                         <SelectValue placeholder="-- Pilih akun --" />
                       </SelectTrigger>
                       <SelectContent>
-                        {masterAkun.map(a => (
-                          <SelectItem key={a.kode} value={a.kode}>
-                            <span className="font-mono text-xs mr-2 text-muted-foreground">{a.kode}</span>
-                            {a.nama}
-                          </SelectItem>
+                        {grouped.length === 0 ? (
+                          <div className="px-2 py-3 text-xs text-muted-foreground text-center">
+                            Belum ada master akun
+                          </div>
+                        ) : grouped.map(g => (
+                          <div key={g.kelompok}>
+                            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                              {g.kelompok}
+                            </div>
+                            {g.akuns.map(a => (
+                              <SelectItem key={a.kode} value={a.kode}>
+                                <span className="font-mono text-xs mr-2 text-muted-foreground">{a.kode}</span>
+                                {a.nama}
+                              </SelectItem>
+                            ))}
+                          </div>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
-
                   <Input
-                    className="col-span-3 h-8 text-sm text-right"
-                    type="number" min="0"
+                    className="col-span-3 h-8 text-sm text-right" type="number" min="0"
                     value={d.debit || ""}
                     onChange={e => setDetail(i, "debit", parseFloat(e.target.value) || 0)}
                     placeholder="0"
                   />
                   <div className="col-span-4 flex gap-1">
                     <Input
-                      className="h-8 text-sm text-right flex-1"
-                      type="number" min="0"
+                      className="h-8 text-sm text-right flex-1" type="number" min="0"
                       value={d.kredit || ""}
                       onChange={e => setDetail(i, "kredit", parseFloat(e.target.value) || 0)}
                       placeholder="0"
                     />
-                    <Button type="button" size="icon" variant="ghost" className="h-8 w-8 shrink-0"
-                      onClick={() => removeRow(i)} disabled={form.detail.length <= 2}>
+                    <Button
+                      type="button" size="icon" variant="ghost" className="h-8 w-8 shrink-0"
+                      onClick={() => setForm(p => ({ ...p, detail: p.detail.filter((_, idx) => idx !== i) }))}
+                      disabled={form.detail.length <= 2}
+                    >
                       <Trash2 className="w-3.5 h-3.5 text-destructive" />
                     </Button>
                   </div>
                 </div>
               ))}
 
-              <Button type="button" variant="outline" size="sm" onClick={addRow}>
+              <Button
+                type="button" variant="outline" size="sm"
+                onClick={() => setForm(p => ({ ...p, detail: [...p.detail, emptyDetail()] }))}
+              >
                 <Plus className="w-3.5 h-3.5 mr-1" /> Tambah Baris
               </Button>
             </div>
 
-            {/* Total & balance indicator */}
-            <div className="rounded-lg border p-3 space-y-1 bg-muted/30">
+            {/* Total */}
+            <div className="rounded-lg border p-3 bg-muted/30 space-y-1">
               <div className="grid grid-cols-12 gap-2 text-sm">
                 <span className="col-span-5 font-semibold">Total</span>
                 <span className={`col-span-3 text-right font-semibold ${isBalanced ? "text-green-600" : "text-destructive"}`}>
@@ -350,11 +448,10 @@ export default function JurnalUmumPage() {
                   {formatRp(totalKredit)}
                 </span>
               </div>
-              {isBalanced ? (
-                <p className="text-xs text-green-600">✓ Jurnal balance</p>
-              ) : totalDebit > 0 ? (
-                <p className="text-xs text-destructive">⚠ Belum balance — selisih {formatRp(selisih)}</p>
-              ) : null}
+              {isBalanced
+                ? <p className="text-xs text-green-600">✓ Jurnal balance</p>
+                : totalDebit > 0 && <p className="text-xs text-destructive">⚠ Belum balance — selisih {formatRp(selisih)}</p>
+              }
             </div>
 
             <div className="flex gap-3">
@@ -367,7 +464,7 @@ export default function JurnalUmumPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── View Detail Dialog ── */}
+      {/* View Dialog */}
       <Dialog open={!!viewTarget} onOpenChange={open => !open && setViewTarget(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -382,7 +479,6 @@ export default function JurnalUmumPage() {
                 <TableRow className="bg-muted/50">
                   <TableHead>Kode</TableHead>
                   <TableHead>Nama Akun</TableHead>
-                  <TableHead>Kelompok</TableHead>
                   <TableHead className="text-right">Debit</TableHead>
                   <TableHead className="text-right">Kredit</TableHead>
                 </TableRow>
@@ -391,16 +487,18 @@ export default function JurnalUmumPage() {
                 {viewTarget.jurnal_detail?.map((d, i) => (
                   <TableRow key={i}>
                     <TableCell className="font-mono text-sm">{d.akun_kode}</TableCell>
-                    <TableCell className="text-sm">{d.master_akun?.nama ?? "-"}</TableCell>
-                    <TableCell>
-                      <span className="text-xs text-muted-foreground">{d.master_akun?.kelompok ?? "-"}</span>
+                    {/* Pakai akunMap untuk nama */}
+                    <TableCell className="text-sm">{akunMap.get(d.akun_kode) ?? "-"}</TableCell>
+                    <TableCell className="text-right text-sm">
+                      {Number(d.debit) > 0 ? formatRp(Number(d.debit)) : "-"}
                     </TableCell>
-                    <TableCell className="text-right text-sm">{d.debit > 0 ? formatRp(Number(d.debit)) : "-"}</TableCell>
-                    <TableCell className="text-right text-sm">{d.kredit > 0 ? formatRp(Number(d.kredit)) : "-"}</TableCell>
+                    <TableCell className="text-right text-sm">
+                      {Number(d.kredit) > 0 ? formatRp(Number(d.kredit)) : "-"}
+                    </TableCell>
                   </TableRow>
                 ))}
                 <TableRow className="bg-muted/50 font-semibold">
-                  <TableCell colSpan={3}>Total</TableCell>
+                  <TableCell colSpan={2}>Total</TableCell>
                   <TableCell className="text-right">
                     {formatRp(viewTarget.jurnal_detail?.reduce((s, d) => s + Number(d.debit), 0) ?? 0)}
                   </TableCell>
@@ -414,15 +512,13 @@ export default function JurnalUmumPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Delete Dialog ── */}
+      {/* Delete Dialog */}
       <Dialog open={!!deleteTarget} onOpenChange={open => !open && setDeleteTarget(null)}>
         <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Hapus Jurnal</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Hapus Jurnal</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">
             Hapus jurnal <span className="font-mono font-semibold text-foreground">{deleteTarget?.no_jurnal}</span>?
-            Semua detail transaksi akan ikut terhapus.
+            Semua detail akan ikut terhapus.
           </p>
           <div className="flex gap-3 pt-2">
             <Button variant="destructive" className="flex-1" onClick={handleDelete} disabled={saving}>

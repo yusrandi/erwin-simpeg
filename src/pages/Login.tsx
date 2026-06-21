@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { login } from "@/lib/auth"
+import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -9,60 +9,71 @@ import { Building2, Eye, EyeOff, LogIn } from "lucide-react"
 
 export default function Login() {
   const navigate = useNavigate()
-  const [username, setUsername] = useState("")
-  const [password, setPassword] = useState("")
+  const [email, setEmail]           = useState("")
+  const [password, setPassword]     = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState("")
-  const [loading, setLoading] = useState(false)
+  const [error, setError]           = useState("")
+  const [loading, setLoading]       = useState(false)
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError("")
     setLoading(true)
 
-    // Simulasi delay sedikit biar tidak terasa instant
-    setTimeout(() => {
-      const ok = login(username, password)
+    const { data, error: authError } = await supabase.auth.signInWithPassword({
+      email, password
+    })
+
+    if (authError || !data.user) {
+      setError("Email atau password salah.")
       setLoading(false)
-      if (ok) {
-        navigate("/", { replace: true })
-      } else {
-        setError("Username atau password salah.")
-      }
-    }, 500)
+      return
+    }
+
+    // Cek profile & role untuk redirect yang sesuai
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", data.user.id)
+      .single()
+
+    setLoading(false)
+
+    if (!profile) { setError("Akun belum dikonfigurasi. Hubungi administrator."); return }
+
+    if (profile.role === "SUPERADMIN_PLATFORM") navigate("/platform", { replace: true })
+    else navigate("/", { replace: true })
   }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-sm space-y-6">
-        {/* Logo */}
         <div className="flex flex-col items-center gap-3 text-center">
           <div className="w-12 h-12 bg-foreground rounded-xl flex items-center justify-center">
             <Building2 className="w-6 h-6 text-background" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-foreground">SIMPEG</h1>
-            <p className="text-sm text-muted-foreground">Sistem Informasi Pegawai</p>
+            <p className="text-sm text-muted-foreground">Sistem Informasi Pesantren</p>
           </div>
         </div>
 
-        {/* Card */}
         <Card className="border">
           <CardHeader className="pb-4">
             <CardTitle className="text-base">Masuk ke Dashboard</CardTitle>
-            <CardDescription>Gunakan akun admin untuk melanjutkan</CardDescription>
+            <CardDescription>Gunakan email & password akun Anda</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input
-                  id="username"
-                  type="text"
-                  placeholder="admin"
-                  value={username}
-                  onChange={e => setUsername(e.target.value)}
-                  autoComplete="username"
+                  id="email"
+                  type="email"
+                  placeholder="admin@pesantren.com"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  autoComplete="email"
                   required
                 />
               </div>
@@ -104,18 +115,20 @@ export default function Login() {
                   </span>
                 ) : (
                   <span className="flex items-center gap-2">
-                    <LogIn className="w-4 h-4" />
-                    Masuk
+                    <LogIn className="w-4 h-4" /> Masuk
                   </span>
                 )}
               </Button>
+
+              <p className="text-center text-sm text-muted-foreground">
+                Belum punya akun?{" "}
+                <a href="/register" className="text-foreground font-medium underline underline-offset-4">
+                  Daftar pesantren
+                </a>
+              </p>
             </form>
           </CardContent>
         </Card>
-
-        <p className="text-center text-xs text-muted-foreground">
-          Sesi login berlaku selama <span className="font-medium text-foreground">1 hari</span>
-        </p>
       </div>
     </div>
   )

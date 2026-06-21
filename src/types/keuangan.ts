@@ -3,10 +3,13 @@ export type KelompokAkun = 'ASET' | 'KEWAJIBAN' | 'MODAL' | 'PENDAPATAN' | 'BEBA
 export type TipeNormal = 'DEBIT' | 'KREDIT'
 
 export interface MasterAkun {
-  kode: string
-  nama: string
-  kelompok: KelompokAkun
-  tipe_normal: TipeNormal
+    id?: number
+    kode: string
+    nama: string
+    pesantren_id: string
+    unit_kerja_id: string
+    kelompok: KelompokAkun
+    tipe_normal: TipeNormal
 }
 
 // ─── Jurnal ────────────────────────────────────────────

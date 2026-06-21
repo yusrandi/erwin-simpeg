@@ -6,11 +6,12 @@ export type JalurMasuk = 'REKRUTMEN' | 'ALUMNI PTH' | 'LAINNYA'
 
 export interface Pegawai {
   id: number
+  pesantren_id: string
+  unit_kerja_id: string
   nama_pegawai: string
   id_nip: string
   pendidikan_terakhir: string
   jenis_kelamin: JenisKelamin
-  unit_kerja: string
   jabatan: string
   tahun_masuk: number
   tahun_keluar: number | null
@@ -23,6 +24,8 @@ export interface Pegawai {
   hp: string
   catatan: string | null
   created_at?: string
+  // join
+  unit_kerja?: { nama: string; jenis: string }
 }
 
 export interface PegawaiFormData {
@@ -30,7 +33,7 @@ export interface PegawaiFormData {
   id_nip: string
   pendidikan_terakhir: string
   jenis_kelamin: JenisKelamin
-  unit_kerja: string
+  unit_kerja_id: string        // ← ganti dari unit_kerja (text)
   jabatan: string
   tahun_masuk: number
   tahun_keluar: number | null
