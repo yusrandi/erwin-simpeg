@@ -9,7 +9,6 @@ import { cn } from "@/lib/utils"
 import { Separator } from "@/components/ui/separator"
 import { useAuth } from "@/hooks/useAuth"
 import { useState, useEffect } from "react"
-import { useNavigate as useNav } from "react-router-dom"
 
 export function Sidebar() {
   const navigate = useNavigate()

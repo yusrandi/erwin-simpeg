@@ -29,7 +29,7 @@ interface AdminForm {
 
 export default function Onboarding() {
   const navigate = useNavigate()
-  const { profile, pesantren } = useAuth()
+  const {  pesantren } = useAuth()
   const { toast } = useToast()
 
   const [step, setStep] = useState<1 | 2 | 3>(1)
@@ -70,7 +70,7 @@ export default function Onboarding() {
 
     setCreatedUnits(data ?? [])
     // Init admins kosong per unit
-    setAdmins((data ?? []).map((u, i) => ({
+    setAdmins((data ?? []).map((_, i) => ({
       unit_index: i,
       nama: "",
       email: "",

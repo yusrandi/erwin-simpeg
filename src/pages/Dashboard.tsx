@@ -10,7 +10,6 @@ import { Users, UserCheck, UserX, Award, GraduationCap, Building, TrendingUp, He
 import type { Pegawai } from "@/types/pegawai"
 
 export default function Dashboard() {
-  const { profile } = useAuth()
   const { isSuperadminPesantren } = useUnit()
 
   // Superadmin pesantren perlu pilih unit dulu
@@ -30,7 +29,7 @@ export default function Dashboard() {
 
 // Untuk admin unit — ambil dari auth
 function DashboardContentFromAuth() {
-  const { profile, pesantren } = useAuth()
+  const { profile } = useAuth()
   if (!profile?.unit_kerja_id || !profile?.pesantren_id) return null
   return <DashboardContent unitKerjaId={profile.unit_kerja_id} pesantrenId={profile.pesantren_id} />
 }
@@ -45,7 +44,7 @@ interface Stats {
   perempuan: number
 }
 
-function DashboardContent({ unitKerjaId, pesantrenId }: { unitKerjaId: string; pesantrenId: string }) {
+function DashboardContent({ unitKerjaId }: { unitKerjaId: string; pesantrenId: string }) {
   const [stats, setStats] = useState<Stats | null>(null)
   const [recent, setRecent] = useState<Pegawai[]>([])
   const [jabatanStats, setJabatanStats] = useState<{ label: string; count: number }[]>([])
