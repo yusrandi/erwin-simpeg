@@ -2,9 +2,9 @@ import { useNavigate } from "react-router-dom"
 import {
   Building2, Users, BookOpen, CreditCard, BarChart3,
   Shield, CheckCircle, ArrowRight, Menu, X,
-  GraduationCap, Wallet,  ChevronRight
+  GraduationCap, Wallet, Scale, ChevronRight, LogOut
 } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 // ── Data ──────────────────────────────────────────────────
 const FITUR = [
@@ -115,6 +115,23 @@ const STATS = [
 export default function Landing() {
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  // Cek status login dari localStorage saat komponen mount
+  useEffect(() => {
+    const token = localStorage.getItem("authToken")
+    setIsAuthenticated(!!token)
+  }, [])
+
+  // Fungsi logout (untuk demo)
+  const handleLogout = () => {
+    localStorage.removeItem("authToken")
+    setIsAuthenticated(false)
+    navigate("/")
+  }
+
+  // Fungsi untuk navigasi ke dashboard (jika sudah login)
+  const goToDashboard = () => navigate("/dashboard")
 
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans">
@@ -142,20 +159,40 @@ export default function Landing() {
             ))}
           </div>
 
-          {/* CTA */}
+          {/* CTA - berubah jika sudah login */}
           <div className="hidden md:flex items-center gap-3">
-            <button
-              onClick={() => navigate("/login")}
-              className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
-            >
-              Masuk
-            </button>
-            <button
-              onClick={() => navigate("/register")}
-              className="bg-slate-900 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-slate-700 transition-colors"
-            >
-              Daftar Gratis
-            </button>
+            {isAuthenticated ? (
+              <>
+                <button
+                  onClick={goToDashboard}
+                  className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
+                >
+                  Dashboard
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-1.5 bg-red-50 text-red-600 text-sm font-medium px-4 py-2 rounded-lg hover:bg-red-100 transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Keluar
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => navigate("/login")}
+                  className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
+                >
+                  Masuk
+                </button>
+                <button
+                  onClick={() => navigate("/register")}
+                  className="bg-slate-900 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-slate-700 transition-colors"
+                >
+                  Daftar Gratis
+                </button>
+              </>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -178,18 +215,38 @@ export default function Landing() {
               </a>
             ))}
             <div className="pt-3 border-t border-slate-100 flex flex-col gap-2">
-              <button
-                onClick={() => navigate("/login")}
-                className="text-sm font-medium text-slate-600 text-left"
-              >
-                Masuk
-              </button>
-              <button
-                onClick={() => navigate("/register")}
-                className="bg-slate-900 text-white text-sm font-medium px-4 py-2 rounded-lg text-center"
-              >
-                Daftar Gratis
-              </button>
+              {isAuthenticated ? (
+                <>
+                  <button
+                    onClick={() => { setMenuOpen(false); goToDashboard(); }}
+                    className="text-sm font-medium text-slate-600 text-left"
+                  >
+                    Dashboard
+                  </button>
+                  <button
+                    onClick={() => { setMenuOpen(false); handleLogout(); }}
+                    className="flex items-center gap-1.5 text-sm font-medium text-red-600 text-left"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Keluar
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => navigate("/login")}
+                    className="text-sm font-medium text-slate-600 text-left"
+                  >
+                    Masuk
+                  </button>
+                  <button
+                    onClick={() => navigate("/register")}
+                    className="bg-slate-900 text-white text-sm font-medium px-4 py-2 rounded-lg text-center"
+                  >
+                    Daftar Gratis
+                  </button>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -215,18 +272,28 @@ export default function Landing() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            {isAuthenticated ? (
+              <button
+                onClick={goToDashboard}
+                className="flex items-center gap-2 bg-slate-900 text-white font-semibold px-6 py-3 rounded-xl hover:bg-slate-700 transition-colors w-full sm:w-auto justify-center"
+              >
+                Dashboard
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            ) : (
+              <button
+                onClick={() => navigate("/register")}
+                className="flex items-center gap-2 bg-slate-900 text-white font-semibold px-6 py-3 rounded-xl hover:bg-slate-700 transition-colors w-full sm:w-auto justify-center"
+              >
+                Mulai Gratis Sekarang
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            )}
             <button
-              onClick={() => navigate("/register")}
-              className="flex items-center gap-2 bg-slate-900 text-white font-semibold px-6 py-3 rounded-xl hover:bg-slate-700 transition-colors w-full sm:w-auto justify-center"
-            >
-              Mulai Gratis Sekarang
-              <ArrowRight className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => navigate("/login")}
+              onClick={() => navigate(isAuthenticated ? "/dashboard" : "/login")}
               className="flex items-center gap-2 border border-slate-200 text-slate-700 font-semibold px-6 py-3 rounded-xl hover:bg-slate-50 transition-colors w-full sm:w-auto justify-center"
             >
-              Lihat Demo
+              {isAuthenticated ? "Dashboard" : "Lihat Demo"}
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
@@ -236,11 +303,10 @@ export default function Landing() {
           </p>
         </div>
 
-        {/* Hero visual */}
+        {/* Hero visual (tetap sama) */}
         <div className="max-w-5xl mx-auto mt-16">
           <div className="bg-slate-900 rounded-2xl p-1 shadow-2xl">
             <div className="bg-slate-800 rounded-xl p-4">
-              {/* Fake browser bar */}
               <div className="flex items-center gap-1.5 mb-4">
                 <div className="w-3 h-3 rounded-full bg-red-500/70" />
                 <div className="w-3 h-3 rounded-full bg-yellow-500/70" />
@@ -249,11 +315,8 @@ export default function Landing() {
                   <span className="text-slate-400 text-xs">app.simpeg.id/dashboard</span>
                 </div>
               </div>
-
-              {/* Fake dashboard */}
               <div className="bg-white rounded-lg overflow-hidden">
                 <div className="flex">
-                  {/* Sidebar */}
                   <div className="w-44 bg-slate-50 border-r border-slate-100 p-3 space-y-1 hidden sm:block">
                     <div className="flex items-center gap-2 p-2 mb-3">
                       <div className="w-5 h-5 bg-slate-900 rounded" />
@@ -266,8 +329,6 @@ export default function Landing() {
                       </div>
                     ))}
                   </div>
-
-                  {/* Content */}
                   <div className="flex-1 p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <div>
@@ -276,8 +337,6 @@ export default function Landing() {
                       </div>
                       <div className="h-6 w-20 bg-slate-900 rounded-lg" />
                     </div>
-
-                    {/* Stat cards */}
                     <div className="grid grid-cols-4 gap-2">
                       {[
                         { label: "Total Pegawai", val: "247" },
@@ -291,8 +350,6 @@ export default function Landing() {
                         </div>
                       ))}
                     </div>
-
-                    {/* Chart placeholder */}
                     <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
                       <div className="h-2 w-28 bg-slate-200 rounded mb-3" />
                       <div className="flex items-end gap-1 h-16">
@@ -404,51 +461,76 @@ export default function Landing() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {PAKET.map(p => (
-              <div
-                key={p.nama}
-                className={`rounded-2xl p-6 border-2 flex flex-col ${
-                  p.highlight
-                    ? "border-slate-900 bg-slate-900 text-white shadow-2xl scale-105"
-                    : "border-slate-100 bg-white text-slate-900"
-                }`}
-              >
-                {p.highlight && (
-                  <div className="inline-flex self-start bg-white text-slate-900 text-xs font-bold px-3 py-1 rounded-full mb-4">
-                    Paling Populer
-                  </div>
-                )}
-                <p className={`text-sm font-semibold mb-1 ${p.highlight ? "text-slate-300" : "text-slate-500"}`}>
-                  {p.nama}
-                </p>
-                <p className={`text-3xl font-bold ${p.highlight ? "text-white" : "text-slate-900"}`}>
-                  {p.harga}
-                </p>
-                <p className={`text-xs mt-1 mb-6 ${p.highlight ? "text-slate-400" : "text-slate-400"}`}>
-                  {p.periode}
-                </p>
+            {PAKET.map(p => {
+              // Tentukan aksi tombol berdasarkan paket dan status login
+              let buttonText, buttonAction
+              if (p.nama === "Enterprise") {
+                buttonText = "Hubungi Kami"
+                buttonAction = () => document.getElementById("kontak")?.scrollIntoView({ behavior: "smooth" })
+              } else if (p.nama === "Starter") {
+                if (isAuthenticated) {
+                  buttonText = "Dashboard"
+                  buttonAction = goToDashboard
+                } else {
+                  buttonText = "Mulai Gratis"
+                  buttonAction = () => navigate("/register")
+                }
+              } else { // Pesantren
+                if (isAuthenticated) {
+                  buttonText = "Dashboard"
+                  buttonAction = goToDashboard
+                } else {
+                  buttonText = "Coba 14 Hari Gratis"
+                  buttonAction = () => navigate("/register")
+                }
+              }
 
-                <ul className="space-y-3 flex-1 mb-6">
-                  {p.fitur.map(f => (
-                    <li key={f} className="flex items-start gap-2.5 text-sm">
-                      <CheckCircle className={`w-4 h-4 mt-0.5 shrink-0 ${p.highlight ? "text-green-400" : "text-green-500"}`} />
-                      <span className={p.highlight ? "text-slate-200" : "text-slate-600"}>{f}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <button
-                  onClick={() => navigate(p.nama === "Enterprise" ? "#kontak" : "/register")}
-                  className={`w-full py-3 rounded-xl font-semibold text-sm transition-colors ${
+              return (
+                <div
+                  key={p.nama}
+                  className={`rounded-2xl p-6 border-2 flex flex-col ${
                     p.highlight
-                      ? "bg-white text-slate-900 hover:bg-slate-100"
-                      : "bg-slate-900 text-white hover:bg-slate-700"
+                      ? "border-slate-900 bg-slate-900 text-white shadow-2xl scale-105"
+                      : "border-slate-100 bg-white text-slate-900"
                   }`}
                 >
-                  {p.nama === "Enterprise" ? "Hubungi Kami" : p.nama === "Starter" ? "Mulai Gratis" : "Coba 14 Hari Gratis"}
-                </button>
-              </div>
-            ))}
+                  {p.highlight && (
+                    <div className="inline-flex self-start bg-white text-slate-900 text-xs font-bold px-3 py-1 rounded-full mb-4">
+                      Paling Populer
+                    </div>
+                  )}
+                  <p className={`text-sm font-semibold mb-1 ${p.highlight ? "text-slate-300" : "text-slate-500"}`}>
+                    {p.nama}
+                  </p>
+                  <p className={`text-3xl font-bold ${p.highlight ? "text-white" : "text-slate-900"}`}>
+                    {p.harga}
+                  </p>
+                  <p className={`text-xs mt-1 mb-6 ${p.highlight ? "text-slate-400" : "text-slate-400"}`}>
+                    {p.periode}
+                  </p>
+
+                  <ul className="space-y-3 flex-1 mb-6">
+                    {p.fitur.map(f => (
+                      <li key={f} className="flex items-start gap-2.5 text-sm">
+                        <CheckCircle className={`w-4 h-4 mt-0.5 shrink-0 ${p.highlight ? "text-green-400" : "text-green-500"}`} />
+                        <span className={p.highlight ? "text-slate-200" : "text-slate-600"}>{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <button
+                    onClick={buttonAction}
+                    className={`w-full py-3 rounded-xl font-semibold text-sm transition-colors ${
+                      p.highlight
+                        ? "bg-white text-slate-900 hover:bg-slate-100"
+                        : "bg-slate-900 text-white hover:bg-slate-700"
+                    }`}
+                  >
+                    {buttonText}
+                  </button>
+                </div>
+              )
+            })}
           </div>
         </div>
       </section>
@@ -498,19 +580,38 @@ export default function Landing() {
             Daftar gratis, tidak perlu kartu kredit.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <button
-              onClick={() => navigate("/register")}
-              className="flex items-center justify-center gap-2 bg-white text-slate-900 font-semibold px-8 py-3.5 rounded-xl hover:bg-slate-100 transition-colors"
-            >
-              Daftar Gratis Sekarang
-              <ArrowRight className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => navigate("/login")}
-              className="flex items-center justify-center gap-2 border border-slate-700 text-white font-semibold px-8 py-3.5 rounded-xl hover:bg-slate-800 transition-colors"
-            >
-              Masuk ke Akun
-            </button>
+            {isAuthenticated ? (
+              <button
+                onClick={goToDashboard}
+                className="flex items-center justify-center gap-2 bg-white text-slate-900 font-semibold px-8 py-3.5 rounded-xl hover:bg-slate-100 transition-colors"
+              >
+                Dashboard
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            ) : (
+              <button
+                onClick={() => navigate("/register")}
+                className="flex items-center justify-center gap-2 bg-white text-slate-900 font-semibold px-8 py-3.5 rounded-xl hover:bg-slate-100 transition-colors"
+              >
+                Daftar Gratis Sekarang
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            )}
+            {isAuthenticated ? (
+              <button
+                onClick={handleLogout}
+                className="flex items-center justify-center gap-2 border border-slate-700 text-white font-semibold px-8 py-3.5 rounded-xl hover:bg-slate-800 transition-colors"
+              >
+                Keluar
+              </button>
+            ) : (
+              <button
+                onClick={() => navigate("/login")}
+                className="flex items-center justify-center gap-2 border border-slate-700 text-white font-semibold px-8 py-3.5 rounded-xl hover:bg-slate-800 transition-colors"
+              >
+                Masuk ke Akun
+              </button>
+            )}
           </div>
         </div>
       </section>

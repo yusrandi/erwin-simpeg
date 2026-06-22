@@ -4,7 +4,9 @@ import {
   BookOpen, BookMarked, Wallet, TrendingDown, Scale,
   ArrowLeftRight, Building2, Building, Sun, Moon,
   LogOut, ChevronDown,
-  CreditCard
+  CreditCard,
+  Landmark,
+  HandCoins
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Separator } from "@/components/ui/separator"
@@ -49,9 +51,11 @@ export function Sidebar() {
       ],
     },
     {
-        label: "Pembayaran",          // ← group baru
+        label: "Keuangan",          // ← group baru
         items: [
         { to: "/setting-pembayaran", icon: CreditCard, label: "Setting Pembayaran" },
+        { to: "/kas-bank", icon: Landmark, label: "Kas & Bank" },
+        { to: "/hutang", icon: HandCoins, label: "Hutang" },
         ],
     },
     {

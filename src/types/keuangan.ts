@@ -85,3 +85,75 @@ export interface PerubahanModalRow {
   jumlah: number
   tipe: 'TAMBAH' | 'KURANG'
 }
+
+export type TipeKasTransaksi = 'SALDO_AWAL' | 'KAS_MASUK' | 'KAS_KELUAR' | 'TRANSFER'
+
+export interface KasTransaksi {
+  id: number
+  unit_kerja_id: string
+  pesantren_id: string
+  jurnal_id: number | null
+  tipe: TipeKasTransaksi
+  tanggal: string
+  no_transaksi: string
+  akun_kas_id: string
+  akun_lawan_id: string
+  jumlah: number
+  keterangan: string | null
+  created_at?: string
+}
+
+export interface RekonsiliasiBankRow {
+  id: number
+  unit_kerja_id: string
+  pesantren_id: string
+  akun_kas_id: string
+  periode: string
+  saldo_sistem: number
+  saldo_buku: number
+  selisih: number
+  catatan: string | null
+  created_at?: string
+}
+
+export interface PosHutang {
+  id: number
+  unit_kerja_id: string
+  pesantren_id: string
+  nama: string
+  akun_kode: string
+  keterangan: string | null
+  created_at?: string
+}
+
+export interface Hutang {
+  id: number
+  unit_kerja_id: string
+  pesantren_id: string
+  pos_hutang_id: number
+  unit_pemberi_id: string | null
+  jurnal_id: number | null
+  tanggal: string
+  no_hutang: string
+  jumlah: number
+  sisa_hutang: number
+  keterangan: string | null
+  status: 'BELUM_LUNAS' | 'LUNAS' | 'SEBAGIAN'
+  created_at?: string
+  // join
+  pos_hutang?: { nama: string; akun_kode: string }
+  unit_pemberi?: { nama: string }
+}
+
+export interface BayarHutang {
+  id: number
+  hutang_id: number
+  unit_kerja_id: string
+  pesantren_id: string
+  jurnal_id: number | null
+  tanggal: string
+  jumlah_bayar: number
+  akun_kas_id: string
+  keterangan: string | null
+  created_at?: string
+}

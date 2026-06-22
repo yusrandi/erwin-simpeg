@@ -31,6 +31,8 @@ import PlatformUsers from "./pages/platform/Users"
 import UnitKerja from "./pages/UnitKerja"
 import SettingPembayaran from "./pages/SettingPembayaran"
 import Landing from "./pages/Landing"
+import KasBank from "./pages/KasBank"
+import Hutang from "./pages/Hutang"
 
 export default function App() {
   const { user, profile, loading } = useAuth()
@@ -90,6 +92,8 @@ export default function App() {
             <Route path="/neraca"          element={<Neraca />} />
             <Route path="/pengaturan"      element={<Pengaturan />} />
             <Route path="/setting-pembayaran" element={<SettingPembayaran />} />
+            <Route path="/kas-bank" element={<KasBank />} />
+            <Route path="/hutang" element={<Hutang />} />
           </Route>
         </Route>
 
