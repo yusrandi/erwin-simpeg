@@ -2,9 +2,12 @@ import { useNavigate } from "react-router-dom"
 import {
   Building2, Users, BookOpen, CreditCard, BarChart3,
   Shield, CheckCircle, ArrowRight, Menu, X,
-  GraduationCap, Wallet, ChevronRight, LogOut
+  GraduationCap, Wallet, ChevronRight, LogOut,
+  Sun,
+  Moon
 } from "lucide-react"
 import { useState, useEffect } from "react"
+import { useAuth } from "@/hooks/useAuth"
 
 // ── Data ──────────────────────────────────────────────────
 const FITUR = [
@@ -115,35 +118,40 @@ const STATS = [
 export default function Landing() {
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
-  // Cek status login dari localStorage saat komponen mount
-  useEffect(() => {
-    const token = localStorage.getItem("authToken")
-    setIsAuthenticated(!!token)
-  }, [])
+  const { user, signOut } = useAuth()
+    const isAuthenticated = !!user
 
-  // Fungsi logout (untuk demo)
-  const handleLogout = () => {
-    localStorage.removeItem("authToken")
-    setIsAuthenticated(false)
+    const [isDark, setIsDark] = useState(
+  () => localStorage.getItem("theme") === "dark"
+)
+
+useEffect(() => {
+  document.documentElement.classList.toggle("dark", isDark)
+  localStorage.setItem("theme", isDark ? "dark" : "light")
+}, [isDark])
+
+
+    const handleLogout = async () => {
+    await signOut()
     navigate("/")
-  }
+    }
 
   // Fungsi untuk navigasi ke dashboard (jika sudah login)
   const goToDashboard = () => navigate("/dashboard")
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans">
+    <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans transition-colors">
+
       {/* ── Navbar ── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-b border-slate-200">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 dark:bg-slate-950/95 backdrop-blur border-b border-slate-200 dark:border-slate-800 transition-colors">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center">
-              <Building2 className="w-4 h-4 text-white" />
+            <div className="w-8 h-8 bg-slate-900 dark:bg-white rounded-lg flex items-center justify-center">
+              <Building2 className="w-4 h-4 text-white dark:text-slate-900" />
             </div>
-            <span className="font-bold text-lg text-slate-900">SIMPEG</span>
+            <span className="font-bold text-lg text-slate-900 dark:text-white">SIMPEG</span>
           </div>
 
           {/* Desktop nav */}
@@ -152,15 +160,23 @@ export default function Landing() {
               <a
                 key={item}
                 href={`#${item.toLowerCase()}`}
-                className="text-sm text-slate-600 hover:text-slate-900 transition-colors font-medium"
+                className="text-sm text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors font-medium"
               >
                 {item}
               </a>
             ))}
           </div>
 
+
+
           {/* CTA - berubah jika sudah login */}
           <div className="hidden md:flex items-center gap-3">
+            <button
+            onClick={() => setIsDark(d => !d)}
+            className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            >
+            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+        </button>
             {isAuthenticated ? (
               <>
                 <button
@@ -181,13 +197,13 @@ export default function Landing() {
               <>
                 <button
                   onClick={() => navigate("/login")}
-                  className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
+                  className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors"
                 >
                   Masuk
                 </button>
                 <button
                   onClick={() => navigate("/register")}
-                  className="bg-slate-900 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-slate-700 transition-colors"
+                  className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-medium px-4 py-2 rounded-lg hover:bg-slate-700 dark:hover:bg-slate-100 transition-colors"
                 >
                   Daftar Gratis
                 </button>
@@ -203,7 +219,8 @@ export default function Landing() {
 
         {/* Mobile menu */}
         {menuOpen && (
-          <div className="md:hidden border-t border-slate-200 bg-white px-6 py-4 space-y-3">
+          <div className="md:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-6 py-4 space-y-3">
+
             {["Fitur", "Paket", "Testimoni", "Kontak"].map((item) => (
               <a
                 key={item}
@@ -255,17 +272,17 @@ export default function Landing() {
       {/* ── Hero ── */}
       <section className="pt-32 pb-20 px-6">
         <div className="max-w-4xl mx-auto text-center space-y-6">
-          <div className="inline-flex items-center gap-2 bg-slate-100 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-full">
+          <div className="inline-flex items-center gap-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold px-3 py-1.5 rounded-full">
             <GraduationCap className="w-3.5 h-3.5" />
             Sistem Informasi Pesantren Terpadu
           </div>
 
-          <h1 className="text-4xl md:text-6xl font-bold text-slate-900 leading-tight tracking-tight">
+          <h1 className="text-4xl md:text-6xl font-bold text-slate-900 dark:text-white leading-tight tracking-tight">
             Kelola Pesantren Anda<br />
-            <span className="text-slate-400">Lebih Cerdas & Efisien</span>
+            <span className="text-slate-400 dark:text-slate-500">Lebih Cerdas & Efisien</span>
           </h1>
 
-          <p className="text-lg text-slate-500 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-lg text-slate-500  dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
             SIMPEG adalah platform manajemen pesantren modern yang mengintegrasikan
             data pegawai, akuntansi, dan pembayaran SPP dalam satu sistem yang mudah
             digunakan oleh seluruh unit kerja.
@@ -291,14 +308,14 @@ export default function Landing() {
             )}
             <button
               onClick={() => navigate(isAuthenticated ? "/dashboard" : "/login")}
-              className="flex items-center gap-2 border border-slate-200 text-slate-700 font-semibold px-6 py-3 rounded-xl hover:bg-slate-50 transition-colors w-full sm:w-auto justify-center"
+              className="flex items-center gap-2 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-semibold px-6 py-3 rounded-xl transition-colors w-full sm:w-auto justify-center"
             >
               {isAuthenticated ? "Dashboard" : "Lihat Demo"}
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
 
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-400 dark:text-slate-500">
             Gratis selamanya untuk 1 unit kerja. Tanpa kartu kredit.
           </p>
         </div>
@@ -384,13 +401,13 @@ export default function Landing() {
       <section id="fitur" className="py-20 px-6">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12 space-y-3">
-            <div className="inline-flex items-center gap-2 bg-slate-100 text-slate-600 text-xs font-semibold px-3 py-1.5 rounded-full">
+            <div className="inline-flex items-center gap-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300  text-xs font-semibold px-3 py-1.5 rounded-full">
               Fitur Lengkap
             </div>
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-900">
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white">
               Semua yang Pesantren Anda Butuhkan
             </h2>
-            <p className="text-slate-500 max-w-xl mx-auto">
+            <p className="text-slate-500 dark:text-slate-400 max-w-xl mx-auto">
               Dirancang khusus untuk kebutuhan pesantren modern — dari yang kecil
               hingga yang memiliki puluhan unit.
             </p>
@@ -414,11 +431,11 @@ export default function Landing() {
       </section>
 
       {/* ── Cara Kerja ── */}
-      <section className="py-20 px-6 bg-slate-50">
+      <section className="py-20 px-6 bg-slate-50 dark:bg-slate-900">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12 space-y-3">
-            <h2 className="text-3xl font-bold text-slate-900">Mulai dalam 3 Langkah</h2>
-            <p className="text-slate-500">Setup cepat, langsung bisa digunakan.</p>
+            <h2 className="text-3xl font-bold text-slate-900 dark:text-white">Mulai dalam 3 Langkah</h2>
+            <p className="text-slate-500 dark:text-slate-400">Setup cepat, langsung bisa digunakan.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -440,9 +457,9 @@ export default function Landing() {
               },
             ].map(step => (
               <div key={step.no} className="relative">
-                <div className="text-6xl font-bold text-slate-100 mb-3">{step.no}</div>
-                <h3 className="font-bold text-slate-900 text-lg mb-2">{step.title}</h3>
-                <p className="text-sm text-slate-500 leading-relaxed">{step.desc}</p>
+                <div className="text-6xl font-bold text-slate-100 dark:text-slate-800 mb-3">{step.no}</div>
+                <h3 className="font-bold text-slate-900 text-lg dark:text-white mb-2">{step.title}</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{step.desc}</p>
               </div>
             ))}
           </div>
@@ -450,7 +467,7 @@ export default function Landing() {
       </section>
 
       {/* ── Paket ── */}
-      <section id="paket" className="py-20 px-6">
+      <section id="paket" className="py-20 px-6 dark:bg-slate-950">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12 space-y-3">
             <div className="inline-flex items-center gap-2 bg-slate-100 text-slate-600 text-xs font-semibold px-3 py-1.5 rounded-full">
@@ -491,7 +508,7 @@ export default function Landing() {
                   className={`rounded-2xl p-6 border-2 flex flex-col ${
                     p.highlight
                       ? "border-slate-900 bg-slate-900 text-white shadow-2xl scale-105"
-                      : "border-slate-100 bg-white text-slate-900"
+                      : "border-slate-100 dark:border-slate-800 dark:bg-slate-900 text-slate-900 dark:text-white"
                   }`}
                 >
                   {p.highlight && (
@@ -499,7 +516,7 @@ export default function Landing() {
                       Paling Populer
                     </div>
                   )}
-                  <p className={`text-sm font-semibold mb-1 ${p.highlight ? "text-slate-300" : "text-slate-500"}`}>
+                  <p className={`text-sm font-semibold mb-1 ${p.highlight ? "text-slate-300" : "text-slate-500 dark:text-slate-400"}`}>
                     {p.nama}
                   </p>
                   <p className={`text-3xl font-bold ${p.highlight ? "text-white" : "text-slate-900"}`}>
@@ -513,7 +530,7 @@ export default function Landing() {
                     {p.fitur.map(f => (
                       <li key={f} className="flex items-start gap-2.5 text-sm">
                         <CheckCircle className={`w-4 h-4 mt-0.5 shrink-0 ${p.highlight ? "text-green-400" : "text-green-500"}`} />
-                        <span className={p.highlight ? "text-slate-200" : "text-slate-600"}>{f}</span>
+                        <span className={p.highlight ? "text-slate-200" : "text-slate-600 dark:text-slate-300"}>{f}</span>
                       </li>
                     ))}
                   </ul>
@@ -523,7 +540,7 @@ export default function Landing() {
                     className={`w-full py-3 rounded-xl font-semibold text-sm transition-colors ${
                       p.highlight
                         ? "bg-white text-slate-900 hover:bg-slate-100"
-                        : "bg-slate-900 text-white hover:bg-slate-700"
+                        : "bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-700 dark:hover:bg-slate-100"
                     }`}
                   >
                     {buttonText}
@@ -536,16 +553,16 @@ export default function Landing() {
       </section>
 
       {/* ── Testimoni ── */}
-      <section id="testimoni" className="py-20 px-6 bg-slate-50">
+      <section id="testimoni" className="py-20 px-6 bg-slate-50 dark:bg-slate-900">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12 space-y-3">
-            <h2 className="text-3xl font-bold text-slate-900">Dipercaya Pesantren Se-Indonesia</h2>
+            <h2 className="text-3xl font-bold text-slate-900 dark:text-white">Dipercaya Pesantren Se-Indonesia</h2>
             <p className="text-slate-500">Apa kata mereka yang sudah menggunakan SIMPEG.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {TESTIMONI.map(t => (
-              <div key={t.nama} className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+              <div key={t.nama} className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700 shadow-sm">
                 <div className="flex gap-0.5 mb-4">
                   {[...Array(5)].map((_, i) => (
                     <svg key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" viewBox="0 0 20 20">
@@ -553,14 +570,14 @@ export default function Landing() {
                     </svg>
                   ))}
                 </div>
-                <p className="text-sm text-slate-600 leading-relaxed mb-5">"{t.isi}"</p>
+                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-5">"{t.isi}"</p>
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 bg-slate-900 rounded-full flex items-center justify-center text-white text-sm font-bold">
                     {t.nama[0]}
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">{t.nama}</p>
-                    <p className="text-xs text-slate-400">{t.jabatan}</p>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{t.nama}</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">{t.jabatan}</p>
                   </div>
                 </div>
               </div>
@@ -617,12 +634,12 @@ export default function Landing() {
       </section>
 
       {/* ── Kontak ── */}
-      <section id="kontak" className="py-16 px-6 bg-slate-50">
+      <section id="kontak" className="py-16 px-6 bg-slate-50 dark:bg-slate-900">
         <div className="max-w-4xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <div className="space-y-4">
-              <h2 className="text-2xl font-bold text-slate-900">Ada Pertanyaan?</h2>
-              <p className="text-slate-500 text-sm leading-relaxed">
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Ada Pertanyaan?</h2>
+              <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
                 Tim kami siap membantu Anda memulai dan menjawab pertanyaan seputar SIMPEG.
               </p>
               <div className="space-y-3 text-sm">
@@ -632,32 +649,32 @@ export default function Landing() {
                   { label: "Jam Operasional", val: "Senin–Jumat, 08.00–17.00 WIB" },
                 ].map(c => (
                   <div key={c.label} className="flex gap-3">
-                    <span className="text-slate-400 w-32 shrink-0">{c.label}</span>
-                    <span className="font-medium text-slate-900">{c.val}</span>
+                    <span className="text-slate-400 dark:text-slate-500 w-32 shrink-0">{c.label}</span>
+                    <span className="font-medium text-slate-900 dark:text-white">{c.val}</span>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Contact form */}
-            <div className="bg-white rounded-2xl border border-slate-100 p-6 space-y-4">
-              <p className="font-semibold text-slate-900">Kirim Pesan</p>
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-6 space-y-4">
+              <p className="font-semibold text-slate-900 dark:text-white">Kirim Pesan</p>
               <input
                 type="text"
                 placeholder="Nama lengkap"
-                className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 dark:bg-slate-700 dark:text-white dark:focus:ring-slate-400"
               />
               <input
                 type="email"
                 placeholder="Email"
-                className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+                className="w-full border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-white placeholder:text-slate-400 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 dark:focus:ring-slate-400"
               />
               <textarea
                 placeholder="Pesan Anda..."
                 rows={3}
-                className="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 resize-none"
+                className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 resize-none dark:bg-slate-700 dark:text-white dark:focus:ring-slate-400"
               />
-              <button className="w-full bg-slate-900 text-white font-semibold py-2.5 rounded-lg text-sm hover:bg-slate-700 transition-colors">
+              <button className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-semibold py-2.5 rounded-lg text-sm hover:bg-slate-700 dark:hover:bg-slate-100 transition-colors">
                 Kirim Pesan
               </button>
             </div>
@@ -666,12 +683,12 @@ export default function Landing() {
       </section>
 
       {/* ── Footer ── */}
-      <footer className="bg-slate-900 text-slate-400 py-10 px-6">
+      <footer className="bg-slate-900 dark:bg-black text-slate-400 py-10 px-6">
         <div className="max-w-5xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 bg-white rounded-lg flex items-center justify-center">
-                <Building2 className="w-4 h-4 text-slate-900" />
+              <div className="w-7 h-7 bg-white dark:bg-slate-800 rounded-lg flex items-center justify-center">
+                <Building2 className="w-4 h-4 text-slate-900 dark:text-white" />
               </div>
               <span className="font-bold text-white">SIMPEG</span>
               <span className="text-xs ml-2">Sistem Informasi Pesantren</span>
@@ -683,7 +700,7 @@ export default function Landing() {
                 </a>
               ))}
             </div>
-            <p className="text-xs">© 2026 SIMPEG. All rights reserved.</p>
+            <p className="text-xs text-slate-500 dark:text-slate-600">© 2026 SIMPEG. All rights reserved.</p>
           </div>
         </div>
       </footer>
