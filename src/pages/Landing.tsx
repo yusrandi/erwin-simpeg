@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom"
 import {
   Building2, Users, BookOpen, CreditCard, BarChart3,
   Shield, CheckCircle, ArrowRight, Menu, X,
-  GraduationCap, Wallet, Scale, ChevronRight, LogOut
+  GraduationCap, Wallet, ChevronRight, LogOut
 } from "lucide-react"
 import { useState, useEffect } from "react"
 
