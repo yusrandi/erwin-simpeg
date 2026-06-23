@@ -33,6 +33,8 @@ import SettingPembayaran from "./pages/SettingPembayaran"
 import Landing from "./pages/Landing"
 import KasBank from "./pages/KasBank"
 import Hutang from "./pages/Hutang"
+import Rekonsiliasi from "./pages/Rekonsiliasi"
+import Laporan from "./pages/Laporan"
 
 export default function App() {
   const { user, profile, loading } = useAuth()
@@ -94,6 +96,9 @@ export default function App() {
             <Route path="/setting-pembayaran" element={<SettingPembayaran />} />
             <Route path="/kas-bank" element={<KasBank />} />
             <Route path="/hutang" element={<Hutang />} />
+            <Route path="/rekonsiliasi" element={<Rekonsiliasi />} />
+            <Route path="/laporan" element={<Laporan />} />
+
           </Route>
         </Route>
 

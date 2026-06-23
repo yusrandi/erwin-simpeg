@@ -6,7 +6,9 @@ import {
   LogOut, ChevronDown,
   CreditCard,
   Landmark,
-  HandCoins
+  HandCoins,
+  GitCompareArrows,
+  FileText
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Separator } from "@/components/ui/separator"
@@ -56,6 +58,7 @@ export function Sidebar() {
         { to: "/setting-pembayaran", icon: CreditCard, label: "Setting Pembayaran" },
         { to: "/kas-bank", icon: Landmark, label: "Kas & Bank" },
         { to: "/hutang", icon: HandCoins, label: "Hutang" },
+        { to: "/rekonsiliasi", icon: GitCompareArrows, label: "Rekonsiliasi Bank" },
         ],
     },
     {
@@ -69,6 +72,12 @@ export function Sidebar() {
         { to: "/perubahan-modal", icon: ArrowLeftRight, label: "Perubahan Modal" },
         { to: "/neraca", icon: Scale, label: "Neraca" },
       ],
+    },
+    {
+        label: "Laporan",
+        items: [
+            { to: "/laporan", icon: FileText, label: "Laporan & Export" },
+        ],
     },
   ]
 
