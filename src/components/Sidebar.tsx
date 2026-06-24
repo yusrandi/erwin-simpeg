@@ -14,10 +14,14 @@ import { cn } from "@/lib/utils"
 import { Separator } from "@/components/ui/separator"
 import { useAuth } from "@/hooks/useAuth"
 import { useState, useEffect } from "react"
+import { useLangganan } from "@/hooks/useLangganan"
 
 export function Sidebar() {
   const navigate = useNavigate()
   const { profile, pesantren, unitKerja, signOut } = useAuth()
+
+  const { paket, jumlahUnit, maxUnit, isUnlimited, sisaHariTrial, isTrialExpired, langganan } = useLangganan()
+
 
   const [theme, setTheme] = useState<"light" | "dark">(
     () => (localStorage.getItem("theme") as "light" | "dark") || "light"
@@ -177,6 +181,45 @@ export function Sidebar() {
               : profile?.role ?? ""}
           </p>
         </div>
+
+{paket && profile?.role === "SUPERADMIN_PESANTREN" && (
+  <div className="px-3 py-2 rounded-lg bg-muted/40 border border-border mx-0">
+    <div className="flex items-center justify-between">
+      <p className="text-xs font-semibold text-foreground">{paket.nama}</p>
+      <button
+        onClick={() => navigate("/upgrade")}
+        className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+      >
+        Upgrade
+      </button>
+    </div>
+    {langganan?.status === "TRIAL" && (
+            <p className={`text-xs mt-0.5 ${isTrialExpired ? "text-destructive" : "text-muted-foreground"}`}>
+                {isTrialExpired ? "Trial berakhir" : `Trial: ${sisaHariTrial} hari lagi`}
+            </p>
+            )}
+            {!isUnlimited && (
+            <div className="mt-2">
+                <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                <span>Unit Kerja</span>
+                <span>{jumlahUnit}/{maxUnit}</span>
+                </div>
+                <div className="w-full bg-muted rounded-full h-1.5">
+                <div
+                    className={`h-1.5 rounded-full transition-all ${
+                    jumlahUnit >= maxUnit ? "bg-destructive" : "bg-foreground"
+                    }`}
+                    style={{ width: `${Math.min((jumlahUnit / maxUnit) * 100, 100)}%` }}
+                />
+                </div>
+            </div>
+            )}
+            {isUnlimited && (
+            <p className="text-xs text-muted-foreground mt-0.5">Unlimited unit</p>
+            )}
+        </div>
+        )}
+
 
         <button
           onClick={handleLogout}

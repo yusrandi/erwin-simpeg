@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Plus, Pencil, Trash2, RefreshCw, Users } from "lucide-react"
 import type { UnitKerja } from "@/types/auth"
+import { useLangganan } from "@/hooks/useLangganan"
+import { useNavigate } from "react-router-dom"
 
 const JENIS_UNIT = [
   "TK", "SD", "SMP", "SMA", "SMK", "MA",
@@ -57,6 +59,18 @@ export default function UnitKerjaPage() {
   const [adminForm, setAdminForm] = useState({ nama: "", email: "", password: "" })
   const [savingAdmin, setSavingAdmin] = useState(false)
 
+  const navigate = useNavigate()
+
+  const {
+  bisaTambahUnit,
+  jumlahUnit,
+  maxUnit,
+  isUnlimited,
+  sisaUnit,
+  paket,
+  refetch: refetchLangganan,
+} = useLangganan()
+
   async function fetchData() {
     if (!pesantren?.id) return
     setLoading(true)
@@ -89,6 +103,17 @@ export default function UnitKerjaPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!pesantren?.id) return
+
+    // Cek limit unit
+  if (!bisaTambahUnit && !editTarget) {
+    toast({
+      title: `Batas unit tercapai`,
+      description: `Paket ${paket?.nama} maksimal ${maxUnit} unit. Upgrade paket untuk menambah lebih banyak unit.`,
+      variant: "destructive"
+    })
+    return
+  }
+
     setSaving(true)
 
     if (editTarget) {
@@ -115,6 +140,7 @@ export default function UnitKerjaPage() {
     setSaving(false)
     closeForm()
     fetchData()
+    refetchLangganan()
   }
 
   async function handleDelete() {
@@ -129,6 +155,7 @@ export default function UnitKerjaPage() {
     toast({ title: "Unit kerja dihapus" })
     setDeleteTarget(null)
     fetchData()
+    refetchLangganan()
   }
 
   function openEdit(u: UnitKerja) {
@@ -204,16 +231,52 @@ export default function UnitKerjaPage() {
           <p className="text-sm text-muted-foreground mt-1">
             Kelola unit-unit di {pesantren?.nama}
           </p>
+
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={fetchData} disabled={loading}>
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} /> Refresh
           </Button>
-          <Button size="sm" onClick={() => { closeForm(); setOpenForm(true) }}>
+          <Button
+        size="sm"
+            onClick={() => {
+                if (!bisaTambahUnit) return
+                closeForm()
+                setOpenForm(true)
+            }}
+            disabled={!bisaTambahUnit}
+            title={!bisaTambahUnit ? `Batas unit paket ${paket?.nama} (max ${maxUnit})` : ""}
+            >
             <Plus className="w-4 h-4 mr-2" /> Tambah Unit
-          </Button>
+        </Button>
         </div>
       </div>
+
+      {!isUnlimited && (
+            <div className={`flex items-center justify-between p-3 rounded-lg border text-sm ${
+                bisaTambahUnit
+                ? "bg-muted/30 border-border"
+                : "bg-destructive/5 border-destructive/30"
+            }`}>
+                <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Paket <strong>{paket?.nama}</strong></span>
+                <span className="text-muted-foreground">·</span>
+                <span className={bisaTambahUnit ? "text-foreground" : "text-destructive"}>
+                    {jumlahUnit} / {maxUnit} unit digunakan
+                </span>
+                </div>
+                {!bisaTambahUnit ? (
+                <button
+                    onClick={() => navigate("/upgrade")}
+                    className="text-xs font-semibold text-destructive underline underline-offset-2"
+                >
+                    Upgrade untuk tambah unit →
+                </button>
+                ) : (
+                <span className="text-xs text-muted-foreground">Sisa {sisaUnit} unit</span>
+                )}
+            </div>
+            )}
 
       {/* Tabel */}
       <div className="rounded-xl border bg-card overflow-hidden">
@@ -292,6 +355,7 @@ export default function UnitKerjaPage() {
           <DialogHeader>
             <DialogTitle>{editTarget ? "Edit Unit Kerja" : "Tambah Unit Kerja"}</DialogTitle>
           </DialogHeader>
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label>Nama Unit *</Label>

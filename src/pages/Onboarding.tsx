@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Building2, Plus, Trash2, CheckCircle, ArrowRight } from "lucide-react"
+import { useLangganan } from "@/hooks/useLangganan"
 
 const JENIS_UNIT = [
   "TK", "SD", "SMP", "SMA", "SMK", "MA",
@@ -42,12 +43,23 @@ export default function Onboarding() {
   const [admins, setAdmins] = useState<AdminForm[]>([])
   const [createdUnits, setCreatedUnits] = useState<{ id: string; nama: string }[]>([])
 
+  const { maxUnit, isUnlimited, paket } = useLangganan()
+
   // ── Step 1: Simpan unit kerja ──
   async function handleSaveUnits(e: React.FormEvent) {
     e.preventDefault()
     if (units.some(u => !u.nama || !u.jenis)) {
       toast({ title: "Semua unit harus diisi", variant: "destructive" })
       return
+    }
+
+    if (!isUnlimited && units.length > maxUnit) {
+        toast({
+        title: `Melebihi batas unit`,
+        description: `Paket ${paket?.nama} hanya boleh ${maxUnit} unit.`,
+        variant: "destructive"
+        })
+        return
     }
     setLoading(true)
 
@@ -248,9 +260,27 @@ export default function Onboarding() {
                   ))}
                 </div>
 
-                <Button type="button" variant="outline" size="sm" onClick={addUnit}>
-                  <Plus className="w-3.5 h-3.5 mr-1" /> Tambah Unit
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addUnit}
+                    disabled={!isUnlimited && units.length >= maxUnit}
+                    >
+                    <Plus className="w-3.5 h-3.5 mr-1" /> Tambah Unit
                 </Button>
+
+                // Tambah info limit:
+                    {!isUnlimited && (
+                    <p className="text-xs text-muted-foreground">
+                        Paket <strong>{paket?.nama}</strong> maksimal <strong>{maxUnit} unit</strong>.
+                        {units.length >= maxUnit && (
+                        <span className="text-destructive ml-1">
+                            Batas tercapai. Upgrade untuk menambah lebih banyak.
+                        </span>
+                        )}
+                    </p>
+                    )}
 
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? (

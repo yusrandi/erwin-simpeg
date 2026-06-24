@@ -8,6 +8,7 @@ export function useLangganan() {
   const [langganan, setLangganan] = useState<Langganan | null>(null)
   const [paket, setPaket] = useState<PaketLangganan | null>(null)
   const [loading, setLoading] = useState(true)
+  const [jumlahUnit, setJumlahUnit] = useState(0)
 
   useEffect(() => {
     if (!pesantren?.id) {
@@ -24,6 +25,7 @@ export function useLangganan() {
         .from("langganan")
         .select("*, paket_langganan(*)")
         .eq("pesantren_id", pesantren!.id)
+        .in("status", ["TRIAL", "AKTIF"])
         .order("created_at", { ascending: false })
         .limit(1)
         .single()
@@ -36,6 +38,16 @@ export function useLangganan() {
         setLangganan(null)
         setPaket(null)
       }
+
+      // Hitung jumlah unit aktif
+    const { count } = await supabase
+      .from("unit_kerja")
+      .select("id", { count: "exact", head: true })
+      .eq("pesantren_id", pesantren!.id)
+      .eq("status", "AKTIF")
+
+    setJumlahUnit(count ?? 0)
+    setLoading(false)
     } catch (error) {
       console.error("Gagal fetch langganan:", error)
       setLangganan(null)
@@ -65,21 +77,22 @@ export function useLangganan() {
   // Max unit dari paket
   const maxUnit = paket?.max_unit ?? 1
 
-  // Cek apakah bisa tambah unit
-  function bisaTambahUnit(jumlahUnitSaatIni: number) {
-    if (maxUnit === -1) return true // unlimited
-    return jumlahUnitSaatIni < maxUnit
-  }
+  const isUnlimited = maxUnit === -1
+  const sisaUnit = isUnlimited ? 999 : Math.max(0, maxUnit - jumlahUnit)
+  const bisaTambahUnit = isUnlimited || jumlahUnit < maxUnit
 
   return {
     langganan,
     paket,
+    jumlahUnit,
+    maxUnit,
+    sisaUnit,
+    isUnlimited,
+    bisaTambahUnit,
     loading,
     isTrialExpired,
     isAktif,
     sisaHariTrial,
-    maxUnit,
-    bisaTambahUnit,
     refetch: fetchLangganan,
   }
 }
