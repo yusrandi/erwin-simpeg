@@ -75,52 +75,71 @@ export default function Register() {
   }
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!validateStep2()) return
-    setLoading(true)
-    setError("")
+  e.preventDefault()
+  if (!validateStep2()) return
+  setLoading(true)
+  setError("")
 
-    try {
-      // 1. Daftarkan user ke Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+  try {
+    // 1. Daftarkan user ke Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: form.email_admin,
+      password: form.password_admin,
+    })
+    if (authError || !authData.user) throw new Error(authError?.message ?? "Gagal membuat akun")
+
+    // 2. Insert pesantren — langsung AKTIF (tidak perlu approve)
+    const { data: pesantren, error: ptError } = await supabase
+      .from("pesantren")
+      .insert({
+        nama: form.nama_pesantren,
+        kode: form.kode_pesantren.toUpperCase(),
+        alamat: form.alamat || null,
+        telepon: form.telepon || null,
+        email: form.email_pesantren,
+        status: "AKTIF", // ← langsung aktif
+      })
+      .select()
+      .single()
+    if (ptError) throw new Error(ptError.message)
+
+    // 3. Insert profile
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .insert({
+        id: authData.user.id,
+        pesantren_id: pesantren.id,
+        unit_kerja_id: null,
+        nama: form.nama_admin,
+        role: "SUPERADMIN_PESANTREN",
+      })
+    if (profileError) throw new Error(profileError.message)
+
+    // 4. Buat trial otomatis
+    const { error: trialError } = await supabase
+      .rpc("create_trial_langganan", { p_pesantren_id: pesantren.id })
+    if (trialError) throw new Error(trialError.message)
+
+        // 5. Login otomatis
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email: form.email_admin,
         password: form.password_admin,
       })
-      if (authError || !authData.user) throw new Error(authError?.message ?? "Gagal membuat akun")
+      if (signInError) {
+        // Jika gagal login, arahkan ke halaman sukses dengan info login manual
+        setSuccess(true)
+        setLoading(false)
+        return
+      }
 
-      // 2. Insert pesantren (status PENDING)
-      const { data: pesantren, error: ptError } = await supabase
-        .from("pesantren")
-        .insert({
-          nama: form.nama_pesantren,
-          kode: form.kode_pesantren.toUpperCase(),
-          alamat: form.alamat || null,
-          telepon: form.telepon || null,
-          email: form.email_pesantren,
-          status: "PENDING",
-        })
-        .select()
-        .single()
-      if (ptError) throw new Error(ptError.message)
-
-      // 3. Insert profile superadmin pesantren
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .insert({
-          id: authData.user.id,
-          pesantren_id: pesantren.id,
-          unit_kerja_id: null,
-          nama: form.nama_admin,
-          role: "SUPERADMIN_PESANTREN",
-        })
-      if (profileError) throw new Error(profileError.message)
-
-      setSuccess(true)
-    } catch (err: any) {
-      setError(err.message ?? "Terjadi kesalahan, coba lagi.")
-    }
+      // 6. Berhasil login, langsung ke dashboard
+      navigate("/dashboard", { replace: true })
+  } catch (err: any) {
+    setError(err.message ?? "Terjadi kesalahan, coba lagi.")
     setLoading(false)
   }
+  setLoading(false)
+}
 
   // ── Sukses ──
   if (success) return (
@@ -131,9 +150,9 @@ export default function Register() {
         </div>
         <h1 className="text-xl font-bold text-foreground">Pendaftaran Terkirim!</h1>
         <p className="text-sm text-muted-foreground">
-          Pendaftaran pesantren <strong>{form.nama_pesantren}</strong> sedang menunggu persetujuan
-          dari superadmin platform. Kami akan menghubungi Anda melalui email{" "}
-          <strong>{form.email_pesantren}</strong>.
+            Akun pesantren <strong>{form.nama_pesantren}</strong> berhasil dibuat.
+            Anda mendapatkan <strong>trial gratis 14 hari</strong> dengan akses penuh ke semua fitur.
+            Silakan login untuk mulai menggunakan SIMPEG.
         </p>
         <Button className="w-full" onClick={() => navigate("/login")}>
           Kembali ke Login

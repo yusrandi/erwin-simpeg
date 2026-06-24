@@ -8,11 +8,11 @@ import { Button } from "@/components/ui/button"
 import { RefreshCw, CheckCircle, XCircle, Eye } from "lucide-react"
 import type { Pesantren } from "@/types/auth"
 
-const statusBadge: Record<string, string> = {
-  PENDING:   "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300",
-  AKTIF:     "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",
-  NONAKTIF:  "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
-}
+// const statusBadge: Record<string, string> = {
+//   PENDING:   "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300",
+//   AKTIF:     "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",
+//   NONAKTIF:  "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
+// }
 
 export default function PlatformPesantren() {
   const { toast } = useToast()
@@ -24,24 +24,36 @@ export default function PlatformPesantren() {
   async function fetchData() {
     setLoading(true)
     const { data: rows } = await supabase
-      .from("pesantren")
-      .select("*")
-      .order("created_at", { ascending: false })
+        .from("pesantren")
+        .select(`
+            *,
+            langganan (
+            status, tanggal_selesai, trial_selesai,
+            paket_langganan ( nama )
+            )
+        `)
+        .order("created_at", { ascending: false })
     setData(rows ?? [])
     setLoading(false)
   }
 
   useEffect(() => { fetchData() }, [])
 
-  async function updateStatus(id: string, status: "AKTIF" | "NONAKTIF") {
-    setSaving(true)
-    const { error } = await supabase.from("pesantren").update({ status }).eq("id", id)
-    setSaving(false)
-    if (error) { toast({ title: "Gagal update status", variant: "destructive" }); return }
-    toast({ title: `Pesantren ${status === "AKTIF" ? "disetujui" : "dinonaktifkan"}` })
-    setViewTarget(null)
-    fetchData()
+async function updateStatus(id: string, status: "AKTIF" | "NONAKTIF") {
+  setSaving(true)
+  const { error } = await supabase.from("pesantren").update({ status }).eq("id", id)
+
+  // Jika disetujui, buat trial otomatis
+  if (status === "AKTIF" && !error) {
+    await supabase.rpc("create_trial_langganan", { p_pesantren_id: id })
   }
+
+  setSaving(false)
+  if (error) { toast({ title: "Gagal update status", variant: "destructive" }); return }
+  toast({ title: `Pesantren ${status === "AKTIF" ? "disetujui & trial dimulai" : "dinonaktifkan"}` })
+  setViewTarget(null)
+  fetchData()
+}
 
   return (
     <div className="space-y-5">
@@ -64,7 +76,7 @@ export default function PlatformPesantren() {
                 <TableHead>Kode</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Telepon</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Langganan</TableHead>
                 <TableHead>Terdaftar</TableHead>
                 <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
@@ -91,10 +103,28 @@ export default function PlatformPesantren() {
                   <TableCell className="text-sm">{p.email}</TableCell>
                   <TableCell className="text-sm">{p.telepon ?? "-"}</TableCell>
                   <TableCell>
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${statusBadge[p.status]}`}>
-                      {p.status}
-                    </span>
-                  </TableCell>
+                        {(() => {
+                            const l = (p as any).langganan?.[0]
+                            if (!l) return <span className="text-xs text-muted-foreground">-</span>
+                            const expired = l.status === "TRIAL" && new Date(l.trial_selesai) < new Date()
+                            return (
+                            <div>
+                                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                                expired ? "bg-red-100 text-red-800" :
+                                l.status === "AKTIF" ? "bg-green-100 text-green-800" :
+                                "bg-yellow-100 text-yellow-800"
+                                }`}>
+                                {expired ? "Trial Expired" : l.status === "TRIAL" ? "Trial" : l.paket_langganan?.nama ?? l.status}
+                                </span>
+                                {l.tanggal_selesai && (
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                    s.d. {new Date(l.tanggal_selesai).toLocaleDateString("id-ID", { dateStyle: "medium" })}
+                                </p>
+                                )}
+                            </div>
+                            )
+                        })()}
+                </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {new Date(p.created_at).toLocaleDateString("id-ID", { dateStyle: "medium" })}
                   </TableCell>

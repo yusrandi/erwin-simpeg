@@ -9,12 +9,13 @@ interface AuthContext {
   pesantren: Pesantren | null
   unitKerja: UnitKerja | null
   loading: boolean
+  hasUnits : boolean
   signOut: () => Promise<void>
 }
 
 const Ctx = createContext<AuthContext>({
   user: null, profile: null, pesantren: null,
-  unitKerja: null, loading: true,
+  unitKerja: null, loading: true, hasUnits: false,
   signOut: async () => {},
 })
 
@@ -24,6 +25,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [pesantren, setPesantren] = useState<Pesantren | null>(null)
   const [unitKerja, setUnitKerja] = useState<UnitKerja | null>(null)
   const [loading, setLoading]     = useState(true)
+
+  const hasUnits = profile?.role === "ADMIN_UNIT"
 
   async function loadProfile(userId: string) {
   try {
@@ -95,7 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <Ctx.Provider value={{ user, profile, pesantren, unitKerja, loading, signOut }}>
+    <Ctx.Provider value={{ user, profile, pesantren, unitKerja, loading, signOut, hasUnits }}>
       {children}
     </Ctx.Provider>
   )

@@ -25,7 +25,6 @@ import PerubahanModal from "@/pages/PerubahanModal"
 import Neraca from "@/pages/Neraca"
 import Pengaturan from "@/pages/Pengaturan"
 import PlatformPesantren from "./pages/platform/Pesantren"
-import Pending from "./pages/Pending"
 import Onboarding from "./pages/Onboarding"
 import PlatformUsers from "./pages/platform/Users"
 import UnitKerja from "./pages/UnitKerja"
@@ -35,6 +34,8 @@ import KasBank from "./pages/KasBank"
 import Hutang from "./pages/Hutang"
 import Rekonsiliasi from "./pages/Rekonsiliasi"
 import Laporan from "./pages/Laporan"
+import PlatformPembayaran from "./pages/platform/Pembayaran"
+import Upgrade from "./pages/Upgrade"
 
 export default function App() {
   const { user, profile, loading } = useAuth()
@@ -60,7 +61,7 @@ export default function App() {
           )}
         />
         <Route path="/register"    element={<Register />} />
-        <Route path="/pending"     element={<Pending />} />
+        {/* <Route path="/pending"     element={<Pending />} /> */}
         <Route path="/onboarding"  element={<Onboarding />} />
         <Route path="/unauthorized" element={
           <div className="min-h-screen flex items-center justify-center">
@@ -68,12 +69,15 @@ export default function App() {
           </div>
         } />
 
+        <Route path="/upgrade" element={<Upgrade />} />
+
         {/* Superadmin Platform — route terpisah */}
         <Route element={<ProtectedRoute allowedRoles={["SUPERADMIN_PLATFORM"]} />}>
           <Route path="/platform" element={<PlatformLayout />}>
             <Route index element={<PlatformDashboard />} />
             <Route path="pesantren" element={<PlatformPesantren />} />
             <Route path="users" element={<PlatformUsers />} />
+            <Route path="pembayaran" element={<PlatformPembayaran />} />
           </Route>
         </Route>
 
@@ -103,6 +107,7 @@ export default function App() {
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
+
       </Routes>
     </BrowserRouter>
   )

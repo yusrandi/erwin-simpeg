@@ -1,22 +1,80 @@
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { Card, CardContent } from "@/components/ui/card"
-import { Building2, CheckCircle, Clock, XCircle } from "lucide-react"
+import { Building2, CheckCircle, Clock, XCircle, Loader2 } from "lucide-react"
 
 export default function PlatformDashboard() {
-  const [stats, setStats] = useState({ total: 0, aktif: 0, pending: 0, nonaktif: 0 })
+  const [stats, setStats] = useState({ total: 0, aktif: 0, trial: 0, trialExpired: 0 })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    supabase.from("pesantren").select("status").then(({ data }) => {
-      if (!data) return
-      setStats({
-        total: data.length,
-        aktif: data.filter(d => d.status === "AKTIF").length,
-        pending: data.filter(d => d.status === "PENDING").length,
-        nonaktif: data.filter(d => d.status === "NONAKTIF").length,
-      })
-    })
+    const fetchStats = async () => {
+      setLoading(true)
+      setError(null)
+
+      try {
+        const { data, error: supabaseError } = await supabase
+          .from("pesantren")
+          .select(`
+            status,
+            langganan ( status, trial_selesai )
+          `)
+
+        if (supabaseError) throw supabaseError
+        if (!data) {
+          setStats({ total: 0, aktif: 0, trial: 0, trialExpired: 0 })
+          return
+        }
+
+        const now = new Date()
+        setStats({
+          total: data.length,
+          aktif: data.filter(d => (d as any).langganan?.[0]?.status === "AKTIF").length,
+          trial: data.filter(d => {
+            const l = (d as any).langganan?.[0]
+            return l?.status === "TRIAL" && new Date(l.trial_selesai) >= now
+          }).length,
+          trialExpired: data.filter(d => {
+            const l = (d as any).langganan?.[0]
+            return l?.status === "TRIAL" && new Date(l.trial_selesai) < now
+          }).length,
+        })
+      } catch (err: any) {
+        console.error("Gagal mengambil data dashboard:", err)
+        setError(err.message || "Terjadi kesalahan saat mengambil data")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchStats()
   }, [])
+
+  // Tampilkan loading
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-60">
+        <Loader2 className="w-10 h-10 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  // Tampilkan error
+  if (error) {
+    return (
+      <div className="text-center text-destructive py-10">
+        <p className="text-lg font-semibold">Gagal memuat data</p>
+        <p className="text-sm">{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md"
+        >
+          Coba lagi
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -28,9 +86,9 @@ export default function PlatformDashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: "Total Pesantren", value: stats.total, icon: Building2 },
-          { label: "Aktif", value: stats.aktif, icon: CheckCircle },
-          { label: "Menunggu Approve", value: stats.pending, icon: Clock },
-          { label: "Non Aktif", value: stats.nonaktif, icon: XCircle },
+          { label: "Langganan Aktif", value: stats.aktif, icon: CheckCircle },
+          { label: "Masa Trial", value: stats.trial, icon: Clock },
+          { label: "Trial Expired", value: stats.trialExpired, icon: XCircle },
         ].map(item => (
           <Card key={item.label}>
             <CardContent className="p-5">

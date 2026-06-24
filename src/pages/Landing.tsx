@@ -8,6 +8,7 @@ import {
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useAuth } from "@/hooks/useAuth"
+import { supabase } from "@/lib/supabase"
 
 // ── Data ──────────────────────────────────────────────────
 const FITUR = [
@@ -43,51 +44,51 @@ const FITUR = [
   },
 ]
 
-const PAKET = [
-  {
-    nama: "Starter",
-    harga: "Gratis",
-    periode: "Selamanya",
-    highlight: false,
-    fitur: [
-      "1 Unit Kerja",
-      "Manajemen Pegawai",
-      "Jurnal Umum & Buku Besar",
-      "Laporan Dasar",
-      "Support Email",
-    ],
-  },
-  {
-    nama: "Pesantren",
-    harga: "Rp 299.000",
-    periode: "per bulan",
-    highlight: true,
-    fitur: [
-      "Unlimited Unit Kerja",
-      "Semua Fitur Akuntansi",
-      "Manajemen SPP & Pembayaran",
-      "Kas & Bank + Rekonsiliasi",
-      "Multi-User & Role Access",
-      "Laporan PDF & Excel",
-      "Priority Support",
-    ],
-  },
-  {
-    nama: "Enterprise",
-    harga: "Custom",
-    periode: "hubungi kami",
-    highlight: false,
-    fitur: [
-      "Semua Fitur Pesantren",
-      "Custom Domain",
-      "Integrasi API",
-      "Dedicated Server",
-      "Training & Onboarding",
-      "SLA 99.9% Uptime",
-      "Account Manager",
-    ],
-  },
-]
+// const PAKET = [
+//   {
+//     nama: "Starter",
+//     harga: "Gratis",
+//     periode: "Selamanya",
+//     highlight: false,
+//     fitur: [
+//       "1 Unit Kerja",
+//       "Manajemen Pegawai",
+//       "Jurnal Umum & Buku Besar",
+//       "Laporan Dasar",
+//       "Support Email",
+//     ],
+//   },
+//   {
+//     nama: "Pesantren",
+//     harga: "Rp 299.000",
+//     periode: "per bulan",
+//     highlight: true,
+//     fitur: [
+//       "Unlimited Unit Kerja",
+//       "Semua Fitur Akuntansi",
+//       "Manajemen SPP & Pembayaran",
+//       "Kas & Bank + Rekonsiliasi",
+//       "Multi-User & Role Access",
+//       "Laporan PDF & Excel",
+//       "Priority Support",
+//     ],
+//   },
+//   {
+//     nama: "Enterprise",
+//     harga: "Custom",
+//     periode: "hubungi kami",
+//     highlight: false,
+//     fitur: [
+//       "Semua Fitur Pesantren",
+//       "Custom Domain",
+//       "Integrasi API",
+//       "Dedicated Server",
+//       "Training & Onboarding",
+//       "SLA 99.9% Uptime",
+//       "Account Manager",
+//     ],
+//   },
+// ]
 
 const TESTIMONI = [
   {
@@ -114,10 +115,15 @@ const STATS = [
   { value: "99.9%", label: "Uptime System" },
 ]
 
+function formatRp(n: number) {
+  return n.toLocaleString("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 })
+}
+
 // ── Komponen ──────────────────────────────────────────────
 export default function Landing() {
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [paketList, setPaketList] = useState<any[]>([])
 
   const { user, signOut } = useAuth()
     const isAuthenticated = !!user
@@ -132,10 +138,22 @@ useEffect(() => {
 }, [isDark])
 
 
-    const handleLogout = async () => {
+const handleLogout = async () => {
     await signOut()
     navigate("/")
-    }
+}
+
+useEffect(() => {
+  // Ambil paket berbayar yang aktif (kecuali TRIAL)
+  supabase
+    .from("paket_langganan")
+    .select("*")
+    .eq("aktif", true)
+    .neq("kode", "TRIAL")
+    .order("urutan")
+    .then(({ data }) => setPaketList(data ?? []))
+}, [])
+
 
   // Fungsi untuk navigasi ke dashboard (jika sudah login)
   const goToDashboard = () => navigate("/dashboard")
@@ -467,7 +485,7 @@ useEffect(() => {
       </section>
 
       {/* ── Paket ── */}
-      <section id="paket" className="py-20 px-6 dark:bg-slate-950">
+      {/* <section id="paket" className="py-20 px-6 dark:bg-slate-950">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12 space-y-3">
             <div className="inline-flex items-center gap-2 bg-slate-100 text-slate-600 text-xs font-semibold px-3 py-1.5 rounded-full">
@@ -550,7 +568,132 @@ useEffect(() => {
             })}
           </div>
         </div>
-      </section>
+      </section> */}
+      <section id="paket" className="py-20 px-6 dark:bg-slate-950">
+        <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-12 space-y-3">
+            <div className="inline-flex items-center gap-2 bg-slate-100 text-slate-600 text-xs font-semibold px-3 py-1.5 rounded-full">
+                Harga Transparan
+            </div>
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900">Pilih Paket yang Sesuai</h2>
+            <p className="text-slate-500">Mulai gratis, upgrade kapan saja sesuai kebutuhan.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Paket Starter (gratis) – tetap hardcoded karena selalu ada */}
+            <div className="rounded-2xl p-6 border-2 border-slate-100 dark:border-slate-800 dark:bg-slate-900 text-slate-900 dark:text-white flex flex-col">
+                <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-1">Starter</p>
+                <p className="text-3xl font-bold text-slate-900 dark:text-white">Gratis</p>
+                <p className="text-xs text-slate-400 mt-1 mb-6">Selamanya</p>
+                <ul className="space-y-3 flex-1 mb-6">
+                <li className="flex items-start gap-2.5 text-sm">
+                    <CheckCircle className="w-4 h-4 mt-0.5 shrink-0 text-green-500" />
+                    <span className="text-slate-600 dark:text-slate-300">1 Unit Kerja</span>
+                </li>
+                <li className="flex items-start gap-2.5 text-sm">
+                    <CheckCircle className="w-4 h-4 mt-0.5 shrink-0 text-green-500" />
+                    <span className="text-slate-600 dark:text-slate-300">Manajemen Pegawai</span>
+                </li>
+                <li className="flex items-start gap-2.5 text-sm">
+                    <CheckCircle className="w-4 h-4 mt-0.5 shrink-0 text-green-500" />
+                    <span className="text-slate-600 dark:text-slate-300">Jurnal Umum & Buku Besar</span>
+                </li>
+                <li className="flex items-start gap-2.5 text-sm">
+                    <CheckCircle className="w-4 h-4 mt-0.5 shrink-0 text-green-500" />
+                    <span className="text-slate-600 dark:text-slate-300">Laporan Dasar</span>
+                </li>
+                </ul>
+                <button
+                onClick={() => isAuthenticated ? goToDashboard() : navigate("/register")}
+                className="w-full py-3 rounded-xl font-semibold text-sm bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-700 dark:hover:bg-slate-100 transition-colors"
+                >
+                {isAuthenticated ? "Dashboard" : "Mulai Gratis"}
+                </button>
+            </div>
+
+            {/* Paket dari database */}
+            {paketList.map((p) => {
+                const isHighlight = p.kode === "PRO" // atau sesuai kebutuhan
+                const isEnterprise = p.kode === "ENTERPRISE"
+
+                let buttonText, buttonAction
+                if (isEnterprise) {
+                buttonText = "Hubungi Kami"
+                buttonAction = () => document.getElementById("kontak")?.scrollIntoView({ behavior: "smooth" })
+                } else {
+                if (isAuthenticated) {
+                    buttonText = "Dashboard"
+                    buttonAction = goToDashboard
+                } else {
+                    buttonText = "Coba 14 Hari Gratis"
+                    buttonAction = () => navigate("/register")
+                }
+                }
+
+                return (
+                <div
+                    key={p.id}
+                    className={`rounded-2xl p-6 border-2 flex flex-col ${
+                    isHighlight
+                        ? "border-slate-900 bg-slate-900 text-white shadow-2xl scale-105"
+                        : "border-slate-100 dark:border-slate-800 dark:bg-slate-900 text-slate-900 dark:text-white"
+                    }`}
+                >
+                    {isHighlight && (
+                    <div className="inline-flex self-start bg-white text-slate-900 text-xs font-bold px-3 py-1 rounded-full mb-4">
+                        Paling Populer
+                    </div>
+                    )}
+                    <p className={`text-sm font-semibold mb-1 ${isHighlight ? "text-slate-300" : "text-slate-500 dark:text-slate-400"}`}>
+                    {p.nama}
+                    </p>
+                    <p className={`text-3xl font-bold ${isHighlight ? "text-white" : "text-slate-900 dark:text-white"}`}>
+                    {p.harga === 0 ? "Custom" : formatRp(p.harga)}
+                    </p>
+                    <p className={`text-xs mt-1 mb-6 ${isHighlight ? "text-slate-400" : "text-slate-400"}`}>
+                    {p.harga === 0 ? "hubungi kami" : "per bulan"}
+                    </p>
+
+                    <ul className="space-y-3 flex-1 mb-6">
+                    <li className="flex items-start gap-2.5 text-sm">
+                        <CheckCircle className={`w-4 h-4 mt-0.5 shrink-0 ${isHighlight ? "text-green-400" : "text-green-500"}`} />
+                        <span className={isHighlight ? "text-slate-200" : "text-slate-600 dark:text-slate-300"}>
+                        {p.max_unit === -1 ? "Unlimited unit kerja" : `Max ${p.max_unit} unit kerja`}
+                        </span>
+                    </li>
+                    <li className="flex items-start gap-2.5 text-sm">
+                        <CheckCircle className={`w-4 h-4 mt-0.5 shrink-0 ${isHighlight ? "text-green-400" : "text-green-500"}`} />
+                        <span className={isHighlight ? "text-slate-200" : "text-slate-600 dark:text-slate-300"}>
+                        Semua fitur SIMPEG
+                        </span>
+                    </li>
+                    {/* Tambahkan fitur lain jika ada di database, misal deskripsi */}
+                    {p.deskripsi && (
+                        <li className="flex items-start gap-2.5 text-sm">
+                        <CheckCircle className={`w-4 h-4 mt-0.5 shrink-0 ${isHighlight ? "text-green-400" : "text-green-500"}`} />
+                        <span className={isHighlight ? "text-slate-200" : "text-slate-600 dark:text-slate-300"}>
+                            {p.deskripsi}
+                        </span>
+                        </li>
+                    )}
+                    </ul>
+
+                    <button
+                    onClick={buttonAction}
+                    className={`w-full py-3 rounded-xl font-semibold text-sm transition-colors ${
+                        isHighlight
+                        ? "bg-white text-slate-900 hover:bg-slate-100"
+                        : "bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-700 dark:hover:bg-slate-100"
+                    }`}
+                    >
+                    {buttonText}
+                    </button>
+                </div>
+                )
+            })}
+            </div>
+        </div>
+        </section>
 
       {/* ── Testimoni ── */}
       <section id="testimoni" className="py-20 px-6 bg-slate-50 dark:bg-slate-900">

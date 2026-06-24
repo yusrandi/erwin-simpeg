@@ -2,7 +2,7 @@ import { Outlet, NavLink, useNavigate } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
-import { LayoutDashboard, Building2, Users, LogOut, Sun, Moon } from "lucide-react"
+import { LayoutDashboard, Building2, Users, LogOut, Sun, Moon, CreditCard } from "lucide-react"
 import { useState, useEffect } from "react"
 import { Toaster } from "@/components/ui/toaster"
 
@@ -10,6 +10,7 @@ const navItems = [
   { to: "/platform", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/platform/pesantren", icon: Building2, label: "Pesantren" },
   { to: "/platform/users", icon: Users, label: "Users" },
+  { to: "/platform/pembayaran", icon: CreditCard, label: "Verifikasi Pembayaran" },
 ]
 
 export default function PlatformLayout() {
